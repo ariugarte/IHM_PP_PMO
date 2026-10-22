@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "types": [
+    {
+      "code": "KBIS",
+      "label": { "fr": "Extrait Kbis", "en": "Company registry excerpt" },
+      "icon": "business",
+      "fields": [
+        { "key": "siren", "label": { "fr": "Numéro SIREN", "en": "SIREN number" }, "dataType": "text", "order": 10, "priority": "primary" },
+        { "key": "companyName", "label": { "fr": "Raison sociale", "en": "Company name" }, "dataType": "text", "order": 20 },
+        { "key": "registrationDate", "label": { "fr": "Date d'immatriculation", "en": "Registration date" }, "dataType": "date", "order": 30 },
+        { "key": "address", "label": { "fr": "Adresse", "en": "Address" }, "dataType": "multiline", "order": 40 }
+      ]
+    },
+    {
+      "code": "IDENTITY_CARD",
+      "label": { "fr": "Pièce d'identité", "en": "Identity card" },
+      "icon": "badge",
+      "fields": [
+        { "key": "lastName", "label": { "fr": "Nom", "en": "Last name" }, "dataType": "text", "order": 10 },
+        { "key": "firstName", "label": { "fr": "Prénom", "en": "First name" }, "dataType": "text", "order": 20 },
+        { "key": "documentNumber", "label": { "fr": "Numéro de pièce", "en": "Document number" }, "dataType": "text", "order": 30 },
+        { "key": "dateOfBirth", "label": { "fr": "Date de naissance", "en": "Birth date" }, "dataType": "date", "order": 40 }
+      ]
+    },
+    {
+      "code": "PASSPORT",
+      "label": { "fr": "Passeport", "en": "Passport" },
+      "icon": "book",
+      "fields": [
+        { "key": "passportNumber", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "dataType": "text", "order": 10 },
+        { "key": "lastName", "label": { "fr": "Nom", "en": "Last name" }, "dataType": "text", "order": 20 },
+        { "key": "nationality", "label": { "fr": "Nationalité", "en": "Nationality" }, "dataType": "text", "order": 30 },
+        { "key": "expiryDate", "label": { "fr": "Date d'expiration", "en": "Expiry date" }, "dataType": "date", "order": 40 }
+      ]
+    },
+    { "code": "OTHER", "label": { "fr": "Autre / Inconnu", "en": "Other / Unknown" }, "icon": "file", "fields": [] }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  auto_https off
+  admin off
+}
+
+:8080 {
+  encode zstd gzip
+
+  handle /healthz {
+    respond "ok" 200
+  }
+
+  handle /config/* {
+    root * /srv
+    header Cache-Control "no-store, no-cache, must-revalidate"
+    header Pragma "no-cache"
+    file_server
+  }
+
+  handle_path /backend/source/* {
+    reverse_proxy {$SOURCE_API_ORIGIN:http://127.0.0.1:9001}
+  }
+
+  handle_path /backend/catalog/* {
+    reverse_proxy {$CATALOG_API_ORIGIN:http://127.0.0.1:9002}
+  }
+
+  handle_path /backend/processing/* {
+    reverse_proxy {$PROCESSING_API_ORIGIN:http://127.0.0.1:9003}
+  }
+
+  handle_path /backend/chat/* {
+    reverse_proxy {$CHAT_API_ORIGIN:http://127.0.0.1:9004}
+  }
+
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    file_server
+  }
+}

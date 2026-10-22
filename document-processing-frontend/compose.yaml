@@ -1,0 +1,25 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: document-processing-frontend:local
+    ports:
+      - "8080:8080"
+    environment:
+      SOURCE_API_ORIGIN: http://127.0.0.1:9001
+      CATALOG_API_ORIGIN: http://127.0.0.1:9002
+      PROCESSING_API_ORIGIN: http://127.0.0.1:9003
+      CHAT_API_ORIGIN: http://127.0.0.1:9004
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/lib/caddy-data
+      - /var/lib/caddy-config
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

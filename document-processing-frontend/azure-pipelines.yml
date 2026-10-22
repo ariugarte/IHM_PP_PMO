@@ -1,0 +1,72 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  nodeVersion: '22.23.2'
+  imageRepository: 'document-processing/frontend'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tagBuild: '$(Build.BuildId)'
+  tagCommit: '$(Build.SourceVersion)'
+  # Define dockerRegistryServiceConnection as a secret/authorized pipeline variable.
+
+stages:
+  - stage: Validate
+    displayName: Validate frontend
+    jobs:
+      - job: Quality
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(nodeVersion)'
+          - script: npm ci
+            displayName: Install pinned dependencies
+          - script: npm run lint
+            displayName: Lint
+          - script: npm run typecheck
+            displayName: Typecheck
+          - script: npm run test:ci
+            displayName: Unit and component tests
+          - script: npm run build
+            displayName: Production build
+          - script: npx playwright install --with-deps chromium
+            displayName: Install Chromium
+          - script: npm run test:e2e
+            displayName: Browser end-to-end tests
+            env:
+              CI: 'true'
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '**/test-results/*.xml'
+              failTaskOnFailedTests: false
+
+  - stage: Image
+    displayName: Build and publish frontend image
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - job: Publish
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: Docker@2
+            displayName: Build and push image
+            inputs:
+              command: buildAndPush
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: '$(imageRepository)'
+              dockerfile: '$(dockerfilePath)'
+              buildContext: '$(Build.SourcesDirectory)'
+              tags: |
+                $(tagBuild)
+                $(tagCommit)

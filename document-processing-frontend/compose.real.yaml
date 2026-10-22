@@ -1,0 +1,11 @@
+services:
+  frontend:
+    volumes:
+      - ./deploy/config/app-config.real.json:/srv/config/app-config.json:ro
+    environment:
+      SOURCE_API_ORIGIN: ${SOURCE_API_ORIGIN:-http://host.docker.internal:8001}
+      CATALOG_API_ORIGIN: ${CATALOG_API_ORIGIN:-http://host.docker.internal:8002}
+      PROCESSING_API_ORIGIN: ${PROCESSING_API_ORIGIN:-http://host.docker.internal:8003}
+      CHAT_API_ORIGIN: ${CHAT_API_ORIGIN:-http://host.docker.internal:8004}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
