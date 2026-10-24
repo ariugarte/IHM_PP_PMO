@@ -6,6 +6,7 @@ type WorkflowState = {
   workflowId?: string;
   sourceSelection?: SourceSelection;
   intakeTask?: Task;
+  selectedContractIds: string[];
   selections: ContractDocumentSelection[];
   processingTasks: Task[];
   selectedContractId?: string;
@@ -16,6 +17,7 @@ type WorkflowState = {
   setSourceSelection: (source: SourceSelection) => void;
   setIntakeTask: (task: Task) => void;
   completeIntake: (workflowId: string) => void;
+  setSelectedContractIds: (contractIds: string[]) => void;
   setSelections: (selections: ContractDocumentSelection[]) => void;
   setProcessingTasks: (tasks: Task[]) => void;
   updateProcessingTask: (task: Task) => void;
@@ -27,6 +29,7 @@ type WorkflowState = {
 };
 
 const initialState = {
+  selectedContractIds: [],
   selections: [],
   processingTasks: [],
   selectedPage: 1,
@@ -48,7 +51,17 @@ export const useWorkflowStore = create<WorkflowState>()(persist((set) => ({
   ...initialState,
   setSourceSelection: (sourceSelection) => set({ sourceSelection }),
   setIntakeTask: (intakeTask) => set({ intakeTask }),
-  completeIntake: (workflowId) => set({ workflowId, navigation: 'documents' }),
+  completeIntake: (workflowId) => set({
+    workflowId,
+    navigation: 'documents',
+    selectedContractIds: [],
+    selections: [],
+    processingTasks: [],
+    selectedContractId: undefined,
+    selectedDocumentId: undefined,
+    selectedPage: 1,
+  }),
+  setSelectedContractIds: (selectedContractIds) => set({ selectedContractIds }),
   setSelections: (selections) => set({ selections }),
   setProcessingTasks: (processingTasks) => set({ processingTasks }),
   updateProcessingTask: (task) => set((state) => ({
@@ -62,11 +75,12 @@ export const useWorkflowStore = create<WorkflowState>()(persist((set) => ({
   setNotice: (notice) => set({ notice }),
   reset: () => set({ ...initialState, sourceSelection: undefined, intakeTask: undefined, workflowId: undefined, selectedContractId: undefined, selectedDocumentId: undefined, notice: undefined }),
 }), {
-  name: 'document-workflow-v1',
+  name: 'document-workflow-v2',
   storage: createJSONStorage(() => sessionStorage),
   partialize: (state) => ({
     workflowId: state.workflowId,
     intakeTask: state.intakeTask ? persistedTaskReference(state.intakeTask) : undefined,
+    selectedContractIds: state.selectedContractIds,
     selections: state.selections,
     processingTasks: state.processingTasks.map(persistedTaskReference),
     selectedContractId: state.selectedContractId,

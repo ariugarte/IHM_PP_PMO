@@ -11,7 +11,7 @@ export const testConfig: AppConfig = {
     failed: ['failed', 'FAILURE'], cancelled: ['cancelled', 'REVOKED'],
   },
   backends: {
-    source: { basePath: '/backend/source', routes: { gedContracts: { method: 'GET', path: '/v1/ged/contracts' }, startIntake: { method: 'POST', path: '/v1/intakes' }, getTask: { method: 'GET', path: '/v1/tasks/{taskId}' } } },
+    source: { basePath: '/backend/source', routes: { startIntake: { method: 'POST', path: '/v1/intakes' }, getTask: { method: 'GET', path: '/v1/tasks/{taskId}' } } },
     catalog: { basePath: '/backend/catalog', routes: { listContractsWithDocuments: { method: 'GET', path: '/v1/workflows/{workflowId}/contracts' }, getPdf: { method: 'GET', path: '/v1/workflows/{workflowId}/documents/{documentId}/content' } } },
     processing: { basePath: '/backend/processing', routes: { startProcessing: { method: 'POST', path: '/v1/workflows/{workflowId}/processing-jobs' }, getTask: { method: 'GET', path: '/v1/tasks/{taskId}' }, getTaskResults: { method: 'GET', path: '/v1/tasks/{taskId}/results' } } },
     chat: { basePath: '/backend/chat', routes: { ask: { method: 'POST', path: '/v1/chat' } } },

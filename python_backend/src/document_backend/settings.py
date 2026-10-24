@@ -16,21 +16,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    data_folder: Path = PROJECT_ROOT / "data"
-    public_data_path: str = "/data"
+    pmo_data_folder: Path = PROJECT_ROOT / "data_PMO"
+    pp_data_folder: Path = PROJECT_ROOT / "data_PP"
 
-    @field_validator("data_folder")
+    @field_validator("pmo_data_folder", "pp_data_folder")
     @classmethod
     def resolve_data_folder(cls, value: Path) -> Path:
         return value.expanduser().resolve()
-
-    @field_validator("public_data_path")
-    @classmethod
-    def validate_public_data_path(cls, value: str) -> str:
-        normalized = value.rstrip("/") or "/"
-        if not normalized.startswith("/"):
-            raise ValueError("public_data_path must be an absolute path")
-        return normalized
 
 
 @lru_cache

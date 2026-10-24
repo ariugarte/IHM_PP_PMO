@@ -1,12 +1,13 @@
 # Document Processing Frontend
 
-Production-oriented React/TypeScript frontend for a three-step contract document workflow: source intake, contract/PDF selection, then progressive page classification and OCR results. In the default local runtime, GED and processing/results remain deterministic browser mocks while filesystem intake, contract discovery, and PDF bytes come from the repository's FastAPI backend.
+Production-oriented React/TypeScript frontend for a three-step contract document workflow: client-type intake, contract/PDF selection, then progressive page classification and OCR results. In the default local runtime, intake, contract discovery, and PDF bytes come from the repository's FastAPI backend while processing/results remain deterministic browser mocks.
 
 ## What works
 
-- Filesystem or GED source selection, including Collective/Sinistres and searchable contract multi-selection.
-- Immediate filesystem intake plus asynchronous GED intake polling; the document step stays locked until a successful response supplies a workflow ID.
-- Contract/document selection by stable IDs, real PDF preview, exact processing payload, independent task monitoring, partial success, and first-success navigation.
+- AXA France blue/red/white branding with reusable header, footer, and favicon logo assets.
+- Legal entity (`PMO`) or natural person (`PP`) selection without a browser-visible filesystem path.
+- Backend-controlled `PMO`/`PP` directory mapping; the document step stays locked until a successful response supplies a workflow ID.
+- Searchable contract multi-selection, per-contract document refinement, five-row scrollable document cards, real PDF preview, and exact processing payloads.
 - Page-specific PDF, classifier, OCR fields, raw OCR, unknown types/fields, missing values, optional confidence, and mixed-classification PDFs.
 - Contextual assistant-ui `LocalRuntime` chat backed by the configured REST endpoint and current workflow/contract/document/page context.
 - Same-tab reload recovery with only workflow IDs, selections, and task references in `sessionStorage`. OCR, PII, PDF bytes, tokens, and chat content are not stored there.
@@ -31,7 +32,7 @@ npm ci
 npm run dev
 ```
 
-Open <http://localhost:5173>. Select **Système de fichiers**, leave `/data`, and start analysis to load the backend catalog immediately. GED and downstream processing/results use the checked-in `happy-path` browser mock.
+Open <http://localhost:5173>. Select **Personne morale (PMO)** or **Personne physique (PP)** and start analysis. The backend loads `data_PMO/` or `data_PP/` from its own configuration; no directory path is entered in the browser. Downstream processing/results use the checked-in `happy-path` browser mock.
 
 ```bash
 npm run lint
@@ -44,11 +45,11 @@ npm run build
 
 ## Run the production image
 
-Mock mode (one frontend container, no Python containers):
+Build and smoke-test the frontend container:
 
 ```bash
 docker compose up --build
-# open http://localhost:8080
+# open http://localhost:8080 (a complete workflow still requires reachable APIs)
 ```
 
 Real Python APIs:
@@ -112,7 +113,7 @@ Reload the page. No component or JavaScript rebuild is required. Supported data 
 4. Return PDF bytes as `application/pdf` through the catalog route. Authentication cookies/headers remain same-origin through the proxy.
 5. The chat adapter is request/response today. An SSE adapter can replace `src/api/chat/service.ts` without changing results navigation.
 
-These are proposed application-facing contracts—not claims about an existing Python implementation. See [API contracts](docs/API_CONTRACTS.md) for exact examples and adapter notes.
+The source/catalog contracts are implemented by the local FastAPI service; processing and chat remain application-facing integration contracts. See [API contracts](docs/API_CONTRACTS.md) for exact examples and adapter notes.
 
 ## Mock scenarios
 
@@ -120,15 +121,15 @@ Set `mock.scenario` in `public/config/app-config.json` to one of:
 
 - `happy-path`: every task succeeds at staggered times.
 - `partial-failure`: some processing tasks fail while completed results stay usable.
-- `intake-failure`: intake fails and documents remain locked.
 - `slow-processing`: tasks take longer, useful for reload-recovery checks.
 
 Add fixtures in `src/mocks/fixtures.ts` and state transitions/routes in `src/mocks/handlers.ts`. The mock service worker is started and awaited only when `mock.enabled` is explicitly true.
 
 ## Important behavior and limits
 
-- A filesystem path is text interpreted by the Python backend host/container. A browser cannot browse an arbitrary server directory.
-- “Collective” and “Sinistres” are GED intake categories, not document types.
+- The browser sends only `clientType`; it never sends or displays a filesystem path. The backend owns both client-type-to-directory mappings.
+- Contract selection is independent from document selection. Removing a contract from the selector removes all of its documents from the processing payload.
+- A contract card shows at most five document rows before its grid scrolls.
 - Task-creating POST requests are never retried automatically. Idempotent GETs use bounded retry/backoff; polling stops at terminal states or a configured local timeout. A timeout means remote state is unknown, not failed.
 - One PDF can contain pages with different classifications. Fields shown on the right always belong to the selected one-based page.
 - Resetting the UI clears local queries/monitoring; it does not claim to cancel remote tasks because no cancellation endpoint is defined.

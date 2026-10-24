@@ -16,7 +16,7 @@ npm ci
 npm run dev
 ```
 
-Vite serves <http://localhost:5173> and proxies filesystem source/catalog requests to FastAPI on port 8001. The default config activates MSW after config validation; filesystem requests pass through it while GED, processing/results, and chat remain mocked.
+Vite serves <http://localhost:5173> and proxies client intake/catalog requests to FastAPI on port 8001. The default config activates MSW after config validation; intake, catalog, and PDF requests pass through it while processing/results and chat remain mocked. FastAPI reads `../data_PMO` for PMO and `../data_PP` for PP by default.
 
 ## Quality gates
 
@@ -29,7 +29,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser suite builds and previews the production bundle, then covers GED and filesystem intake, exact selection payloads, a valid PDF, first-success result entry, mixed page classifications, reload recovery, intake failure, and partial processing failure.
+The browser suite builds and previews the production bundle, then covers PMO and PP intake payloads, the scalable contract selector, exact refined document payloads, a valid PDF, first-success result entry, mixed page classifications, reload recovery, and partial processing failure. Backend tests independently verify both client-type directory mappings.
 
 ## Work on one mock scenario
 
@@ -39,7 +39,7 @@ Edit `public/config/app-config.json`:
 { "mock": { "enabled": true, "scenario": "partial-failure" } }
 ```
 
-Valid values: `happy-path`, `partial-failure`, `intake-failure`, `slow-processing`. Fixture documents/results live in `src/mocks/fixtures.ts`; endpoint behavior and poll-count transitions live in `src/mocks/handlers.ts`. Regenerate the checked-in valid PDFs with:
+Valid values: `happy-path`, `partial-failure`, `slow-processing`. Fixture documents/results live in `src/mocks/fixtures.ts`; endpoint behavior and poll-count transitions live in `src/mocks/handlers.ts`. Regenerate the checked-in valid PDFs with:
 
 ```bash
 node scripts/generate-pdf-fixtures.mjs
@@ -55,6 +55,14 @@ docker compose -f compose.yaml -f compose.real.yaml up --build
 ```
 
 Set `mock.enabled=false` in the mounted real config. Start the Python services on the configured host ports and bind them to a Docker-reachable interface. Each service remains responsible for authentication, authorization, request limits, and data access.
+
+Override the local client directories when needed:
+
+```bash
+DOCUMENT_BACKEND_PMO_DATA_FOLDER=/absolute/path/to/pmo \
+DOCUMENT_BACKEND_PP_DATA_FOLDER=/absolute/path/to/pp \
+uv run uvicorn document_backend.app:app --host 127.0.0.1 --port 8001
+```
 
 ## Container smoke test
 

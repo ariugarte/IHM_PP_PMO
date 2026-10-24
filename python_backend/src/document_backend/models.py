@@ -7,9 +7,13 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+ClientType = Literal["PMO", "PP"]
+
+
 class IntakeRequest(ApiModel):
-    source: Literal["filesystem"]
-    folder_path: str = Field(alias="folderPath", min_length=1)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    client_type: ClientType = Field(alias="clientType")
 
 
 class IntakeTask(ApiModel):

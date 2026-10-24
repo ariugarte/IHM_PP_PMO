@@ -1,58 +1,49 @@
 # Proposed frontend API contracts
 
-These JSON shapes are the frontend's proposed normalized contracts. They are not claims about existing Python APIs. If a real endpoint differs, adapt it in one `src/api/<domain>/adapters.ts` file while preserving the canonical models.
+These JSON shapes are the frontend's normalized contracts. Intake, catalog, and PDF delivery are implemented by the repository's FastAPI service; processing and chat are the proposed integration contracts. If another endpoint differs, adapt it in one `src/api/<domain>/adapters.ts` file while preserving the canonical models.
 
 All browser calls use a same-origin logical prefix. Caddy removes only that prefix before forwarding, so `/backend/source/v1/intakes` becomes `/v1/intakes` at `SOURCE_API_ORIGIN`.
 
-## GED contracts
-
-```http
-GET /backend/source/v1/ged/contracts
-```
-
-```json
-{ "items": [{ "contractNumber": "CTR-2026-001", "label": "Contrat Alpha" }] }
-```
-
 ## Intake
 
+`POST /backend/source/v1/intakes` accepts a business client type, never a filesystem path:
+
 ```json
-{ "source": "filesystem", "folderPath": "/data" }
+{ "clientType": "PMO" }
 ```
 
 or:
 
 ```json
-{ "source": "GED", "gedCategory": "COLLECTIVE", "contractNumbers": ["CTR-2026-001"] }
+{ "clientType": "PP" }
 ```
 
-For GED, `POST /backend/source/v1/intakes` returns HTTP 202 and starts queued work:
+The current FastAPI service uses `DOCUMENT_BACKEND_PMO_DATA_FOLDER` and
+`DOCUMENT_BACKEND_PP_DATA_FOLDER` to resolve the directory. A PMO request returns HTTP 202 with an
+immediately completed, client-scoped workflow:
 
 ```json
-{ "taskId": "INTAKE-001", "status": "queued" }
+{ "taskId": "FS-INTAKE-PMO", "status": "succeeded", "workflowId": "FS-PMO", "progress": 100 }
 ```
 
-For the local filesystem backend, the same endpoint validates `/data`, scans the configured data directory, and returns an immediately completed workflow:
+The equivalent PP response uses the `FS-INTAKE-PP` task and `FS-PP` workflow. Unknown client types
+return HTTP 422 through request validation.
+
+`GET /backend/source/v1/tasks/FS-INTAKE-PMO`:
 
 ```json
-{ "taskId": "FS-INTAKE-DATA", "status": "succeeded", "workflowId": "FS-DATA", "progress": 100 }
-```
-
-`GET /backend/source/v1/tasks/INTAKE-001`:
-
-```json
-{ "taskId": "INTAKE-001", "status": "succeeded", "workflowId": "WF-001", "progress": 100 }
+{ "taskId": "FS-INTAKE-PMO", "status": "succeeded", "workflowId": "FS-PMO", "progress": 100 }
 ```
 
 `adaptIntakeTask` also demonstrates mapping `result.workflowId` when a Python service nests the result reference.
 
 ## Catalog and PDF
 
-`GET /backend/catalog/v1/workflows/WF-001/contracts`:
+`GET /backend/catalog/v1/workflows/FS-PMO/contracts`:
 
 ```json
 {
-  "workflowId": "WF-001",
+  "workflowId": "FS-PMO",
   "contracts": [{
     "contractId": "C-001",
     "contractNumber": "CTR-2026-001",
@@ -68,15 +59,15 @@ For the local filesystem backend, the same endpoint validates `/data`, scans the
 }
 ```
 
-`GET /backend/catalog/v1/workflows/WF-001/documents/D-001/content` returns binary `application/pdf`. It must not be redirected to the SPA index. Cookies or proxy-provided authentication remain same-origin.
+`GET /backend/catalog/v1/workflows/FS-PMO/documents/D-001/content` returns binary `application/pdf`. It must not be redirected to the SPA index. Cookies or proxy-provided authentication remain same-origin.
 
 ## Processing
 
-`POST /backend/processing/v1/workflows/WF-001/processing-jobs`:
+`POST /backend/processing/v1/workflows/FS-PMO/processing-jobs`:
 
 ```json
 {
-  "workflowId": "WF-001",
+  "workflowId": "FS-PMO",
   "selections": [{ "contractId": "C-001", "documentIds": ["D-001", "D-002"] }]
 }
 ```
@@ -126,7 +117,7 @@ One response may contain several documents; some documents may have partial page
   "conversationId": "CHAT-001",
   "message": "Quel est le SIREN ?",
   "context": {
-    "workflowId": "WF-001",
+    "workflowId": "FS-PMO",
     "contractIds": ["C-001"],
     "documentIds": ["D-001"],
     "pageNumbers": [1]
@@ -151,9 +142,9 @@ The client exposes typed errors for 401, 403, 404, 409, 422, 429, and 500 respon
 Example requests to real Python services (not to the browser-only MSW mock):
 
 ```bash
-curl -sS http://localhost:8001/v1/ged/contracts
 curl -sS -X POST http://localhost:8001/v1/intakes \
   -H 'Content-Type: application/json' \
-  -d '{"source":"filesystem","folderPath":"/data/contracts/2026"}'
-curl -sS http://localhost:8001/v1/tasks/INTAKE-001
+  -d '{"clientType":"PMO"}'
+curl -sS http://localhost:8001/v1/tasks/FS-INTAKE-PMO
+curl -sS http://localhost:8001/v1/workflows/FS-PMO/contracts
 ```

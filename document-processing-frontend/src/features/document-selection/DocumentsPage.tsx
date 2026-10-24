@@ -1,5 +1,5 @@
 import { ExpandMore, Search } from '@mui/icons-material';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, Checkbox, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ import { ErrorPanel } from '../../components/feedback/ErrorPanel';
 import { DocumentPreviewDialog } from '../../components/pdf/DocumentPreviewDialog';
 import { useRuntimeConfig } from '../../config/ConfigContext';
 import { selectionCounts, toggleContractSelection } from '../../domain/selections';
-import type { DocumentInfo } from '../../domain/models';
+import type { Contract, DocumentInfo } from '../../domain/models';
 import { useWorkflowStore } from '../../state/workflowStore';
 import { ContractDocumentTable } from './ContractDocumentTable';
 import { ProcessingOverview } from './ProcessingOverview';
@@ -22,6 +22,8 @@ export function DocumentsPage() {
   const workflowId = useWorkflowStore((state) => state.workflowId)!;
   const selections = useWorkflowStore((state) => state.selections);
   const setSelections = useWorkflowStore((state) => state.setSelections);
+  const selectedContractIds = useWorkflowStore((state) => state.selectedContractIds);
+  const setSelectedContractIds = useWorkflowStore((state) => state.setSelectedContractIds);
   const tasks = useWorkflowStore((state) => state.processingTasks);
   const setProcessingTasks = useWorkflowStore((state) => state.setProcessingTasks);
   const [search, setSearch] = useState('');
@@ -32,7 +34,8 @@ export function DocumentsPage() {
     mutationFn: () => startProcessing(appConfig, workflowId, selections),
     onSuccess: (created) => { setProcessingTasks(created); setConfirming(false); },
   });
-  const filtered = useMemo(() => (catalog.data ?? []).filter((contract) => `${contract.contractNumber} ${contract.label ?? ''} ${contract.documents.map((document) => document.filename).join(' ')}`.toLowerCase().includes(search.toLowerCase())), [catalog.data, search]);
+  const selectedContracts = useMemo(() => (catalog.data ?? []).filter((contract) => selectedContractIds.includes(contract.contractId)), [catalog.data, selectedContractIds]);
+  const filtered = useMemo(() => selectedContracts.filter((contract) => `${contract.contractNumber} ${contract.label ?? ''} ${contract.documents.map((document) => document.filename).join(' ')}`.toLowerCase().includes(search.toLowerCase())), [search, selectedContracts]);
   const counts = selectionCounts(selections);
 
   const setContractDocumentIds = (contractId: string, documentIds: string[]) => {
@@ -40,17 +43,45 @@ export function DocumentsPage() {
     setSelections(documentIds.length ? [...others, { contractId, documentIds }] : others);
   };
 
-  const selectAll = () => setSelections((catalog.data ?? []).filter((contract) => contract.documents.length).map((contract) => ({ contractId: contract.contractId, documentIds: contract.documents.map((document) => document.documentId) })));
+  const updateSelectedContracts = (contracts: Contract[]) => {
+    const currentIds = new Set(selectedContractIds);
+    const selectionByContract = new Map(selections.map((selection) => [selection.contractId, selection]));
+    setSelectedContractIds(contracts.map((contract) => contract.contractId));
+    setSelections(contracts.flatMap((contract) => {
+      const existing = selectionByContract.get(contract.contractId);
+      if (existing) return [existing];
+      if (currentIds.has(contract.contractId) || contract.documents.length === 0) return [];
+      return [{ contractId: contract.contractId, documentIds: contract.documents.map((document) => document.documentId) }];
+    }));
+  };
 
   return <Stack spacing={3}>
     <Box><Typography variant="h4">{t('documentsTitle')}</Typography><Typography color="text.secondary">{t('documentsSubtitle')}</Typography></Box>
-    <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2 }}>
-      <TextField value={search} onChange={(event) => setSearch(event.target.value)} label={t('search')} size="small" sx={{ minWidth: 300 }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search /></InputAdornment> } }} />
-      <Stack direction="row" sx={{ gap: 1 }}><Button onClick={selectAll}>{t('selectAll')}</Button><Button onClick={() => setSelections([])}>{t('selectNone')}</Button></Stack>
-    </Stack>
     {catalog.isLoading && <Stack sx={{ alignItems: 'center', py: 6 }}><CircularProgress /></Stack>}
     {catalog.isError && <ErrorPanel message={catalog.error instanceof Error ? catalog.error.message : t('networkError')} onRetry={() => void catalog.refetch()} />}
-    {!catalog.isLoading && !catalog.isError && filtered.length === 0 && <EmptyState message={search ? t('noMatch') : t('noDocuments')} />}
+    {!catalog.isLoading && !catalog.isError && <Card variant="outlined"><CardContent>
+      <Stack spacing={2}>
+        <Box><Typography variant="h6">{t('contractsForAnalysis')}</Typography><Typography variant="body2" color="text.secondary">{t('contractSelectorHelp')}</Typography></Box>
+        <Autocomplete
+          multiple
+          disableCloseOnSelect
+          options={catalog.data ?? []}
+          value={selectedContracts}
+          getOptionLabel={(contract) => `${contract.contractNumber}${contract.label ? ` — ${contract.label}` : ''}`}
+          isOptionEqualToValue={(option, value) => option.contractId === value.contractId}
+          onChange={(_, contracts) => updateSelectedContracts(contracts)}
+          renderValue={(contracts, getItemProps) => contracts.map((contract, index) => <Chip label={contract.contractNumber} {...getItemProps({ index })} key={contract.contractId} />)}
+          renderInput={(params) => <TextField {...params} label={t('contracts')} placeholder={selectedContracts.length ? undefined : t('selectContracts')} />}
+        />
+        <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
+          <Button onClick={() => updateSelectedContracts(catalog.data ?? [])}>{t('selectAllContracts')}</Button>
+          <Button onClick={() => updateSelectedContracts([])} disabled={!selectedContractIds.length}>{t('clearContracts')}</Button>
+        </Stack>
+      </Stack>
+    </CardContent></Card>}
+    {!!selectedContractIds.length && <TextField value={search} onChange={(event) => setSearch(event.target.value)} label={t('searchDocuments')} size="small" sx={{ maxWidth: 440 }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search /></InputAdornment> } }} />}
+    {!catalog.isLoading && !catalog.isError && selectedContractIds.length === 0 && <EmptyState message={t('noContractsSelected')} />}
+    {!catalog.isLoading && !catalog.isError && selectedContractIds.length > 0 && filtered.length === 0 && <EmptyState message={search ? t('noMatch') : t('noDocuments')} />}
     <Stack spacing={1.5}>{filtered.map((contract) => {
       const selected = selections.find((item) => item.contractId === contract.contractId);
       const selectedCount = selected?.documentIds.length ?? 0;

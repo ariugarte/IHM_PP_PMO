@@ -12,8 +12,10 @@ export function ContractDocumentTable({ contract, selectedIds, onSelectionChange
     { field: 'actions', headerName: t('actions'), width: 135, sortable: false, filterable: false, renderCell: (params) => <Button size="small" onClick={() => onPreview(String(params.id))}>{t('view')}</Button> },
   ], [onPreview, t]);
   const model: GridRowSelectionModel = { type: 'include', ids: new Set(selectedIds) };
-  return <Stack><DataGrid
-    autoHeight rows={contract.documents} getRowId={(row) => row.documentId} columns={columns} checkboxSelection disableRowSelectionOnClick hideFooter
+  const visibleDocumentRows = 5;
+  const gridHeight = Math.min(58 + Math.max(contract.documents.length, 1) * 52, 58 + visibleDocumentRows * 52);
+  return <Stack sx={{ height: gridHeight, maxHeight: 58 + visibleDocumentRows * 52 }}><DataGrid
+    rows={contract.documents} getRowId={(row) => row.documentId} columns={columns} checkboxSelection disableRowSelectionOnClick hideFooter
     rowSelectionModel={model}
     onRowSelectionModelChange={(next) => {
       const ids = next.type === 'exclude'
@@ -21,6 +23,6 @@ export function ContractDocumentTable({ contract, selectedIds, onSelectionChange
         : [...next.ids].map(String);
       onSelectionChange(ids);
     }}
-    sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#F7F9FC' } }}
+    sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#F5F7FA' } }}
   /></Stack>;
 }

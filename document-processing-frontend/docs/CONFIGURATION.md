@@ -9,7 +9,7 @@ Do not place secrets, credentials, API keys, tokens, private DNS names, or real 
 ## `app-config.json`
 
 - `version`: schema version; currently exactly `1`.
-- `app`: display name and `fr`/`en` default locale.
+- `app`: display name (currently AXA-branded) and `fr`/`en` default locale.
 - `mock`: explicit enable flag and one deterministic scenario.
 - `features`: contextual chat and confidence visibility.
 - `polling`: interval, maximum interval, local duration, and concurrent active task limit.
@@ -19,6 +19,10 @@ Do not place secrets, credentials, API keys, tokens, private DNS names, or real 
 Every `{placeholder}` must be supplied exactly once by code. Unknown or missing parameters throw before fetch. Each segment uses `encodeURIComponent`; query values use `URLSearchParams` and are not pre-encoded.
 
 To change a Python path or HTTP method, edit/mount the JSON and reload. To change a Python DTO, edit the corresponding adapter rather than adding DTO logic to JSX.
+
+The browser configuration deliberately contains no PMO/PP filesystem paths. Configure those only on
+the source/catalog service with `DOCUMENT_BACKEND_PMO_DATA_FOLDER` and
+`DOCUMENT_BACKEND_PP_DATA_FOLDER`.
 
 ## `document-types.json`
 

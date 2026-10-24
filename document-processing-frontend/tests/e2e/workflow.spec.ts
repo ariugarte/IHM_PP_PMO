@@ -1,19 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function startFilesystemIntake(page: Page) {
+async function startClientIntake(page: Page, clientType: 'PMO' | 'PP' = 'PMO') {
   await page.goto('/source');
-  await page.getByLabel('Chemin du dossier').fill('/data');
+  await page.getByRole('radio', { name: clientType === 'PMO' ? /Personne morale/ : /Personne physique/ }).check();
   await page.getByRole('button', { name: "Démarrer l’analyse" }).click();
   await expect(page).toHaveURL(/\/documents$/);
 }
 
-async function continueAfterIntake(page: Page) {
-  await expect(page.getByRole('button', { name: 'Continuer' })).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'Continuer' }).click();
-  await expect(page).toHaveURL(/\/documents$/);
+async function addContract(page: Page, contractNumber: string) {
+  await page.getByRole('combobox', { name: 'Contrats' }).click();
+  await page.getByRole('option', { name: new RegExp(contractNumber) }).click();
+  await page.keyboard.press('Escape');
 }
 
-async function mockScenario(page: Page, scenario: 'partial-failure' | 'intake-failure' | 'slow-processing') {
+async function mockScenario(page: Page, scenario: 'partial-failure' | 'slow-processing') {
   await page.route('**/config/app-config.json', async (route) => {
     const response = await route.fetch();
     const config = await response.json();
@@ -22,20 +22,13 @@ async function mockScenario(page: Page, scenario: 'partial-failure' | 'intake-fa
   });
 }
 
-test('GED intake, exact refined selection, PDF preview and progressive page results', async ({ page }) => {
-  await page.goto('/source');
-  await page.getByRole('radio', { name: 'GED' }).check();
-  const contracts = page.getByLabel('Contrats');
-  await contracts.click();
-  await page.getByRole('option', { name: /CTR-2026-001/ }).click();
-  await page.getByRole('button', { name: "Démarrer l’analyse" }).click();
-  await continueAfterIntake(page);
-
-  await page.getByRole('checkbox', { name: 'Contrat CTR-2026-001' }).check();
-  const identityRow = page.getByRole('row').filter({ hasText: 'identite_alice.pdf' });
+test('PMO intake, contract selector, refined documents, PDF preview and progressive results', async ({ page }) => {
+  await startClientIntake(page);
+  await addContract(page, 'CTR-2026-001');
+  const identityRow = page.getByRole('row').filter({ hasText: 'identity-alice.pdf' });
   await identityRow.getByRole('checkbox').uncheck();
 
-  await page.getByRole('row').filter({ hasText: 'kbis_alpha.pdf' }).getByRole('button', { name: 'Visualiser' }).click();
+  await page.getByRole('row').filter({ hasText: 'kbis-alpha.pdf' }).getByRole('button', { name: 'Visualiser' }).click();
   await expect(page.getByTestId('pdf-viewer').locator('canvas')).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Fermer' }).click();
 
@@ -43,7 +36,10 @@ test('GED intake, exact refined selection, PDF preview and progressive page resu
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
   const request = await requestPromise;
-  expect(request.postDataJSON()).toEqual({ workflowId: 'WF-001', selections: [{ contractId: 'C-001', documentIds: ['D-001'] }] });
+  const payload = request.postDataJSON() as { workflowId: string; selections: Array<{ contractId: string; documentIds: string[] }> };
+  expect(payload.workflowId).toBe('FS-PMO');
+  expect(payload.selections).toHaveLength(1);
+  expect(payload.selections[0]?.documentIds).toHaveLength(1);
 
   await expect(page.getByRole('button', { name: 'Voir les résultats' })).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Voir les résultats' }).click();
@@ -59,8 +55,8 @@ test('GED intake, exact refined selection, PDF preview and progressive page resu
 
 test('active processing recovers after a full reload', async ({ page }) => {
   await mockScenario(page, 'slow-processing');
-  await startFilesystemIntake(page);
-  await page.getByRole('checkbox', { name: 'Contrat CTR-2026-001' }).check();
+  await startClientIntake(page);
+  await addContract(page, 'CTR-2026-001');
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
   await expect(page.getByText(/TASK-1-001/)).toBeVisible();
@@ -69,23 +65,21 @@ test('active processing recovers after a full reload', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Voir les résultats' })).toBeVisible({ timeout: 15_000 });
 });
 
-test('intake failure never unlocks documents and can be retried', async ({ page }) => {
-  await mockScenario(page, 'intake-failure');
+test('PP intake sends only the client type and lets the backend choose the folder', async ({ page }) => {
   await page.goto('/source');
-  await page.getByRole('radio', { name: 'GED' }).check();
-  await page.getByLabel('Contrats').click();
-  await page.getByRole('option', { name: /CTR-2026-001/ }).click();
+  await page.getByRole('radio', { name: /Personne physique/ }).check();
+  const requestPromise = page.waitForRequest((request) => request.method() === 'POST' && request.url().includes('/v1/intakes'));
   await page.getByRole('button', { name: "Démarrer l’analyse" }).click();
-  await expect(page.getByText('La source GED a refusé la collecte simulée.').first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('button', { name: 'Continuer' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: "Démarrer l’analyse" })).toBeEnabled();
+  expect((await requestPromise).postDataJSON()).toEqual({ clientType: 'PP' });
+  await expect(page).toHaveURL(/\/documents$/);
+  await expect(page.getByText('Contrats à ajouter à l’analyse')).toBeVisible();
 });
 
 test('partial processing failure keeps completed results usable', async ({ page }) => {
   await mockScenario(page, 'partial-failure');
-  await startFilesystemIntake(page);
+  await startClientIntake(page);
+  await page.getByRole('button', { name: 'Ajouter tous les contrats' }).click();
   await expect(page.getByText('kbis-alpha.pdf')).toBeVisible();
-  await page.getByRole('button', { name: 'Tout sélectionner' }).click();
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
   await expect(page.getByRole('button', { name: 'Voir les résultats' })).toBeVisible({ timeout: 10_000 });
@@ -98,9 +92,10 @@ test('partial processing failure keeps completed results usable', async ({ page 
   await expect(page.getByText('ZX-908', { exact: true })).toBeVisible();
 });
 
-test('filesystem intake lists backend contracts and previews backend PDF bytes', async ({ page }) => {
-  await startFilesystemIntake(page);
-  await expect(page.getByText('CTR-2026-001')).toBeVisible();
+test('client intake lists backend contracts and previews backend PDF bytes', async ({ page }) => {
+  await startClientIntake(page, 'PP');
+  await addContract(page, 'CTR-2026-001');
+  await expect(page.getByText('CTR-2026-001').first()).toBeVisible();
   const row = page.getByRole('row').filter({ hasText: 'kbis-alpha.pdf' });
   await row.getByRole('button', { name: 'Visualiser' }).click();
   await expect(page.getByTestId('pdf-viewer').locator('canvas')).toBeVisible({ timeout: 10_000 });

@@ -1,13 +1,8 @@
 import { z } from 'zod';
 
-export const sourceSelectionSchema = z.discriminatedUnion('source', [
-  z.object({ source: z.literal('filesystem'), folderPath: z.string().trim().min(1, 'Le chemin est obligatoire') }),
-  z.object({
-    source: z.literal('GED'),
-    gedCategory: z.enum(['COLLECTIVE', 'SINISTRES'], { error: 'La catégorie est obligatoire' }),
-    contractNumbers: z.array(z.string().min(1)).min(1, 'Sélectionnez au moins un contrat'),
-  }),
-]);
+export const sourceSelectionSchema = z.object({
+  clientType: z.enum(['PMO', 'PP'], { error: 'Le type de client est obligatoire' }),
+});
 export type SourceSelection = z.infer<typeof sourceSelectionSchema>;
 
 export const taskStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']);
@@ -76,7 +71,6 @@ export const documentResultSchema = z.object({
 });
 export type DocumentResult = z.infer<typeof documentResultSchema>;
 
-export type GedContractOption = { contractNumber: string; label?: string };
 export type ChatContext = { workflowId: string; contractIds: string[]; documentIds: string[]; pageNumbers: number[] };
 export type ChatReply = {
   conversationId: string;

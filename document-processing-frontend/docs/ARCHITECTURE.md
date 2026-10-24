@@ -12,7 +12,9 @@ Browser (React)
   └─ /backend/chat/*        ── Caddy ── CHAT_API_ORIGIN
 ```
 
-In mock mode, MSW intercepts those exact browser requests. GED, processing/results, and chat receive deterministic responses. Filesystem source/catalog requests are passed through to the FastAPI backend, with Vite proxying source and catalog paths during local development. The React endpoint resolver, HTTP client, DTO adapters, TanStack queries, and screens remain shared.
+In mock mode, MSW intercepts those exact browser requests. Processing/results and chat receive deterministic responses. Client intake, catalog, and PDF requests are passed through to the FastAPI backend, with Vite proxying source and catalog paths during local development. The React endpoint resolver, HTTP client, DTO adapters, TanStack queries, and screens remain shared.
+
+The intake boundary accepts only `clientType`. The FastAPI service owns two configuration entries (`PMO` and `PP`) and maps each to its filesystem repository. The resulting `FS-PMO` or `FS-PP` workflow keeps later catalog and PDF requests scoped to the selected client type.
 
 ## Source modules
 
@@ -27,7 +29,7 @@ In mock mode, MSW intercepts those exact browser requests. GED, processing/resul
 
 ## State ownership
 
-TanStack Query owns catalogs, current task responses, PDFs, and completed results. Zustand owns workflow identity, selected IDs, task references, and navigation. The persistence middleware writes only non-sensitive recovery data to `sessionStorage`.
+TanStack Query owns catalogs, current task responses, PDFs, and completed results. Zustand owns workflow identity, included contract IDs, selected document IDs, task references, and navigation. The persistence middleware writes only non-sensitive recovery data to `sessionStorage`.
 
 The task monitor sits above the routes. It keeps active task polling alive across navigation, stops terminal tasks, bounds concurrently enabled task queries, prevents overlapping polling through TanStack Query, handles bounded transport retries, and invalidates task queries when the tab regains focus.
 
@@ -40,6 +42,8 @@ Path placeholders are individually encoded and every supplied parameter must be 
 ## Task and result semantics
 
 - Intake may advance only after success plus `workflowId`.
+- `PMO` and `PP` intake requests never contain a path; repository resolution is a backend concern.
+- The contract multi-selector controls card inclusion independently from each card's document checkboxes.
 - Processing creation returns a list; the app never assumes one task per contract.
 - Results are requested only for succeeded tasks and deduplicated by stable document ID.
 - Failed task data never hides successful task data.
@@ -51,3 +55,10 @@ Path placeholders are individually encoded and every supplied parameter must be 
 Runtime JSON is public and is rendered as text only; no dynamic HTML or code is evaluated. Private upstreams remain in Caddy environment variables. API and PDF requests are same-origin and use `credentials: same-origin`. Caddy has no admin API or automatic HTTPS, listens on 8080, and the image runs without root or Linux capabilities. OpenShift terminates TLS at the Route.
 
 Authentication/authorization, API rate limits, document access control, and proxy trust policy must be enforced by the Python services or an approved gateway.
+
+## Visual identity
+
+The shell uses AXA's core blue, red, and white palette. `public/axa-logo.svg` is used in the header,
+footer, and browser favicon; theme tokens in `src/theme/theme.ts` keep interactive controls and focus
+states consistent. Deployment teams remain responsible for confirming brand-asset authorization and
+any production typography license.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "app": { "name": "Analyse documentaire", "defaultLocale": "fr" },
+  "app": { "name": "Analyse documentaire AXA", "defaultLocale": "fr" },
   "mock": { "enabled": true, "scenario": "happy-path" },
   "features": { "chatEnabled": true, "showConfidence": true },
   "polling": { "intervalMs": 350, "maxIntervalMs": 2000, "maxDurationMs": 300000, "concurrency": 4 },
@@ -15,7 +15,6 @@
     "source": {
       "basePath": "/backend/source",
       "routes": {
-        "gedContracts": { "method": "GET", "path": "/v1/ged/contracts" },
         "startIntake": { "method": "POST", "path": "/v1/intakes" },
         "getTask": { "method": "GET", "path": "/v1/tasks/{taskId}" }
       }

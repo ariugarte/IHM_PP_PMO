@@ -23,18 +23,10 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
   };
 
   return [
-    http.get('/backend/source/v1/ged/contracts', async () => {
-      await delay(120);
-      return HttpResponse.json({ items: contracts.map(({ contractNumber, label }) => ({ contractNumber, label })) });
-    }),
     http.post('/backend/source/v1/intakes', async ({ request }) => {
       const body = await request.clone().json() as Record<string, unknown>;
-      if (body.source === 'filesystem') return passthrough();
-      if (!['filesystem', 'GED'].includes(String(body.source))) return HttpResponse.json({ message: 'Source invalide', code: 'INVALID_SOURCE' }, { status: 422 });
-      const task: SimulatedTask = { taskId: 'INTAKE-001', stage: 'intake', polls: 0, fail: scenario === 'intake-failure', successAfter: 3 };
-      tasks.set(task.taskId, task);
-      persist();
-      return HttpResponse.json({ taskId: task.taskId, status: 'queued' }, { status: 202, headers: { 'x-correlation-id': 'MOCK-INTAKE-001' } });
+      if (body.clientType === 'PMO' || body.clientType === 'PP') return passthrough();
+      return HttpResponse.json({ message: 'Type de client invalide', code: 'INVALID_CLIENT_TYPE' }, { status: 422 });
     }),
     http.get('/backend/source/v1/tasks/:taskId', async ({ params }) => {
       if (String(params.taskId).startsWith('FS-')) return passthrough();
@@ -44,7 +36,7 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       persist();
       await delay(80);
       const status = taskStatus(task);
-      return HttpResponse.json({ taskId: task.taskId, status, workflowId: status === 'succeeded' ? 'WF-001' : undefined, progress: status === 'queued' ? 10 : status === 'running' ? 62 : 100, message: status === 'failed' ? 'La source GED a refusé la collecte simulée.' : undefined, errorCode: status === 'failed' ? 'MOCK_INTAKE_FAILURE' : undefined });
+      return HttpResponse.json({ taskId: task.taskId, status, workflowId: status === 'succeeded' ? 'WF-001' : undefined, progress: status === 'queued' ? 10 : status === 'running' ? 62 : 100, message: status === 'failed' ? 'La collecte simulée a échoué.' : undefined, errorCode: status === 'failed' ? 'MOCK_INTAKE_FAILURE' : undefined });
     }),
     http.get('/backend/catalog/v1/workflows/:workflowId/contracts', async ({ params }) => {
       if (String(params.workflowId).startsWith('FS-')) return passthrough();

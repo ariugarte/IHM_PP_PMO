@@ -9,9 +9,7 @@ const intakeTaskWireSchema = z.object({
 });
 
 export function toIntakeRequest(source: SourceSelection): unknown {
-  return source.source === 'filesystem'
-    ? { source: source.source, folderPath: source.folderPath }
-    : { source: source.source, gedCategory: source.gedCategory, contractNumbers: source.contractNumbers };
+  return { clientType: source.clientType };
 }
 
 export function adaptIntakeStart(raw: unknown, config: AppConfig): Task {

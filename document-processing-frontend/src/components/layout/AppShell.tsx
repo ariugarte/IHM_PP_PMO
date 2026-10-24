@@ -1,5 +1,5 @@
 import { Language, Refresh } from '@mui/icons-material';
-import { AppBar, Box, Button, Chip, Container, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
+import { AppBar, Box, Button, Chip, Container, IconButton, Stack, Toolbar, Tooltip, Typography } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -34,18 +34,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   };
 
-  return <Box sx={{ minHeight: '100vh' }}>
-    <AppBar position="static" elevation={0} sx={{ bgcolor: '#12395B' }}>
+  return <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main', borderTop: '4px solid', borderColor: 'secondary.main' }}>
       <Toolbar sx={{ gap: 2 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: 2, display: 'grid', placeItems: 'center', bgcolor: '#6CE9D5', color: '#12395B', fontWeight: 900 }}>AD</Box>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>{appConfig.app.name || t('appName')}</Typography>
+        <Box component="img" src="/axa-logo.svg" alt="AXA" sx={{ width: 46, height: 46, flexShrink: 0 }} />
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}><Typography variant="h6" component="div" noWrap>{appConfig.app.name || t('appName')}</Typography><Typography variant="caption" sx={{ display: { xs: 'none', sm: 'block' }, opacity: .8 }}>AXA France</Typography></Box>
         {appConfig.mock.enabled && <Chip label={t('demoMode')} size="small" sx={{ bgcolor: '#FFF1C2', color: '#6D4E00', fontWeight: 700 }} />}
         <Tooltip title={t('language')}><IconButton color="inherit" onClick={() => void changeLanguage()} aria-label={t('language')}><Language /></IconButton></Tooltip>
         <Button color="inherit" startIcon={<Refresh />} onClick={() => setConfirming(true)}>{t('restart')}</Button>
       </Toolbar>
     </AppBar>
     <Box sx={{ bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', py: 2 }}><WorkflowStepper activeStep={activeStep} /></Box>
-    <Container component="main" maxWidth="xl" sx={{ py: { xs: 3, md: 5 } }}>{children}</Container>
+    <Container component="main" maxWidth="xl" sx={{ py: { xs: 3, md: 5 }, flex: 1 }}>{children}</Container>
+    <Box component="footer" sx={{ borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', py: 2 }}><Container maxWidth="xl"><Stack direction="row" sx={{ alignItems: 'center', gap: 1.5 }}><Box component="img" src="/axa-logo.svg" alt="" aria-hidden="true" sx={{ width: 28, height: 28 }} /><Typography variant="body2" color="text.secondary">AXA France · {t('proofOfConcept')}</Typography></Stack></Container></Box>
     <ConfirmDialog open={confirming} title={t('restart')} message={t('confirmRestart')} onCancel={() => setConfirming(false)} onConfirm={restart} />
   </Box>;
 }

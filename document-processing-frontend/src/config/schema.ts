@@ -30,7 +30,7 @@ const statusAliasesSchema = z.record(
 export const appConfigSchema = z.object({
   version: z.literal(1),
   app: z.object({ name: z.string().min(1), defaultLocale: z.enum(['fr', 'en']) }),
-  mock: z.object({ enabled: z.boolean(), scenario: z.enum(['happy-path', 'partial-failure', 'intake-failure', 'slow-processing']) }),
+  mock: z.object({ enabled: z.boolean(), scenario: z.enum(['happy-path', 'partial-failure', 'slow-processing']) }),
   features: z.object({ chatEnabled: z.boolean(), showConfidence: z.boolean() }),
   polling: z.object({
     intervalMs: z.number().int().min(100),

@@ -7,9 +7,6 @@ from pypdf.errors import PdfReadError
 
 from .models import Catalog, Contract, DocumentInfo
 
-WORKFLOW_ID = "FS-DATA"
-TASK_ID = "FS-INTAKE-DATA"
-
 
 def _stable_id(prefix: str, value: str) -> str:
     encoded = base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
@@ -23,8 +20,9 @@ class CatalogSnapshot:
 
 
 class FilesystemCatalog:
-    def __init__(self, data_folder: Path) -> None:
+    def __init__(self, data_folder: Path, workflow_id: str) -> None:
         self.data_folder = data_folder
+        self.workflow_id = workflow_id
 
     def scan(self) -> CatalogSnapshot:
         if not self.data_folder.is_dir():
@@ -76,7 +74,7 @@ class FilesystemCatalog:
             )
 
         return CatalogSnapshot(
-            catalog=Catalog(workflow_id=WORKFLOW_ID, contracts=contracts),
+            catalog=Catalog(workflow_id=self.workflow_id, contracts=contracts),
             document_paths=document_paths,
         )
 

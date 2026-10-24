@@ -6,14 +6,20 @@ from urllib.parse import quote
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from .catalog import TASK_ID, WORKFLOW_ID, FilesystemCatalog
-from .models import Catalog, IntakeRequest, IntakeTask
+from .catalog import FilesystemCatalog
+from .models import Catalog, ClientType, IntakeRequest, IntakeTask
 from .settings import Settings, get_settings
+
+WORKFLOW_IDS: dict[ClientType, str] = {"PMO": "FS-PMO", "PP": "FS-PP"}
+TASK_IDS: dict[ClientType, str] = {"PMO": "FS-INTAKE-PMO", "PP": "FS-INTAKE-PP"}
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     runtime_settings = settings or get_settings()
-    repository = FilesystemCatalog(runtime_settings.data_folder)
+    repositories: dict[ClientType, FilesystemCatalog] = {
+        "PMO": FilesystemCatalog(runtime_settings.pmo_data_folder, WORKFLOW_IDS["PMO"]),
+        "PP": FilesystemCatalog(runtime_settings.pp_data_folder, WORKFLOW_IDS["PP"]),
+    }
     application = FastAPI(title="Document filesystem backend", version="0.1.0")
 
     @application.get("/healthz", tags=["operations"])
@@ -27,20 +33,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tags=["source"],
     )
     async def start_intake(request: IntakeRequest) -> IntakeTask:
-        if request.folder_path.rstrip("/") != runtime_settings.public_data_path:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"folderPath must be {runtime_settings.public_data_path}",
-            )
-        _scan_or_503(repository)
-        return IntakeTask(task_id=TASK_ID, workflow_id=WORKFLOW_ID)
+        _scan_or_503(repositories[request.client_type])
+        return IntakeTask(
+            task_id=TASK_IDS[request.client_type],
+            workflow_id=WORKFLOW_IDS[request.client_type],
+        )
 
     @application.get("/v1/tasks/{task_id}", response_model=IntakeTask, tags=["source"])
     async def get_task(task_id: str) -> IntakeTask:
-        if task_id != TASK_ID:
+        client_type = _client_type_for_task(task_id)
+        if client_type is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown task")
-        _scan_or_503(repository)
-        return IntakeTask(task_id=TASK_ID, workflow_id=WORKFLOW_ID)
+        _scan_or_503(repositories[client_type])
+        return IntakeTask(task_id=task_id, workflow_id=WORKFLOW_IDS[client_type])
 
     @application.get(
         "/v1/workflows/{workflow_id}/contracts",
@@ -48,7 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tags=["catalog"],
     )
     async def list_contracts(workflow_id: str) -> Catalog:
-        _validate_workflow(workflow_id)
+        repository = _repository_for_workflow(workflow_id, repositories)
         return _scan_or_503(repository).catalog
 
     @application.get(
@@ -57,7 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tags=["catalog"],
     )
     async def get_document(workflow_id: str, document_id: str) -> StreamingResponse:
-        _validate_workflow(workflow_id)
+        repository = _repository_for_workflow(workflow_id, repositories)
         snapshot = _scan_or_503(repository)
         document_path = snapshot.document_paths.get(document_id)
         if document_path is None:
@@ -80,9 +85,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return application
 
 
-def _validate_workflow(workflow_id: str) -> None:
-    if workflow_id != WORKFLOW_ID:
+def _client_type_for_task(task_id: str) -> ClientType | None:
+    return next(
+        (client_type for client_type, known_id in TASK_IDS.items() if known_id == task_id),
+        None,
+    )
+
+
+def _repository_for_workflow(
+    workflow_id: str,
+    repositories: dict[ClientType, FilesystemCatalog],
+) -> FilesystemCatalog:
+    client_type = next(
+        (client_type for client_type, known_id in WORKFLOW_IDS.items() if known_id == workflow_id),
+        None,
+    )
+    if client_type is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown workflow")
+    return repositories[client_type]
 
 
 def _scan_or_503(repository: FilesystemCatalog):

@@ -1,19 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { adaptIntakeStart } from './adapters';
+import { adaptIntakeStart, toIntakeRequest } from './adapters';
 import { testConfig } from '../../test/fixtures';
 
 describe('intake adapters', () => {
-  it('preserves an immediately completed filesystem workflow', () => {
+  it('sends only the selected client type', () => {
+    expect(toIntakeRequest({ clientType: 'PMO' })).toEqual({ clientType: 'PMO' });
+  });
+
+  it('preserves an immediately completed client workflow', () => {
     expect(adaptIntakeStart({
-      taskId: 'FS-INTAKE-DATA',
+      taskId: 'FS-INTAKE-PMO',
       status: 'succeeded',
-      workflowId: 'FS-DATA',
+      workflowId: 'FS-PMO',
       progress: 100,
     }, testConfig)).toEqual({
-      taskId: 'FS-INTAKE-DATA',
+      taskId: 'FS-INTAKE-PMO',
       status: 'succeeded',
       stage: 'intake',
-      workflowId: 'FS-DATA',
+      workflowId: 'FS-PMO',
       progress: 100,
     });
   });
