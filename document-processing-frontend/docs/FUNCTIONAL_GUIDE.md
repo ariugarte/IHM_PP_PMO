@@ -8,10 +8,10 @@ The application lets an operations user collect contracts, choose which PDF docu
 
 The user chooses exactly one source:
 
-- **Système de fichiers**: a required path such as `/data/contracts/2026`. This path is interpreted on the source service's host/container; it is not a browser-local folder upload.
+- **Système de fichiers**: the `/data` alias configured by the Python service. This path is interpreted on the source service's host/container; it is not a browser-local folder upload.
 - **GED**: one category (`Collective` or `Sinistres`) and at least one contract number loaded from the source API.
 
-Submitting creates one intake task. The UI prevents duplicate submits, polls its state, shows progress and transient errors, and unlocks **Continuer** only when the normalized status is `succeeded` and a `workflowId` is known. Failed, cancelled, timed-out, and network-error states never silently navigate forward.
+Submitting a filesystem source validates `/data` through the Python backend and navigates directly to Documents when the completed response contains a `workflowId`. GED creates an intake task: the UI prevents duplicate submits, polls its state, shows progress and transient errors, and unlocks **Continuer** only when the normalized status is `succeeded` and a `workflowId` is known. Failed, cancelled, timed-out, and network-error states never silently navigate forward.
 
 ## Step 2 — Documents
 

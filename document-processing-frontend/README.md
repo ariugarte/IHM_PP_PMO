@@ -1,11 +1,11 @@
 # Document Processing Frontend
 
-Production-oriented React/TypeScript frontend for a three-step contract document workflow: asynchronous source intake, contract/PDF selection, then progressive page classification and OCR results. The default runtime is a complete deterministic browser mock; the same UI and typed HTTP client can be switched to separately deployed Python APIs without rebuilding the JavaScript bundle.
+Production-oriented React/TypeScript frontend for a three-step contract document workflow: source intake, contract/PDF selection, then progressive page classification and OCR results. In the default local runtime, GED and processing/results remain deterministic browser mocks while filesystem intake, contract discovery, and PDF bytes come from the repository's FastAPI backend.
 
 ## What works
 
 - Filesystem or GED source selection, including Collective/Sinistres and searchable contract multi-selection.
-- Intake task creation and polling; the document step stays locked until a successful task supplies a workflow ID.
+- Immediate filesystem intake plus asynchronous GED intake polling; the document step stays locked until a successful response supplies a workflow ID.
 - Contract/document selection by stable IDs, real PDF preview, exact processing payload, independent task monitoring, partial success, and first-success navigation.
 - Page-specific PDF, classifier, OCR fields, raw OCR, unknown types/fields, missing values, optional confidence, and mixed-classification PDFs.
 - Contextual assistant-ui `LocalRuntime` chat backed by the configured REST endpoint and current workflow/contract/document/page context.
@@ -21,11 +21,17 @@ Production-oriented React/TypeScript frontend for a three-step contract document
 ## Local development and verification
 
 ```bash
+# terminal 1
+cd ../python_backend
+uv sync
+uv run uvicorn document_backend.app:app --host 127.0.0.1 --port 8001
+
+# terminal 2
 npm ci
 npm run dev
 ```
 
-Open <http://localhost:5173>. The checked-in config enables the `happy-path` browser mock, so no Python service is needed.
+Open <http://localhost:5173>. Select **Système de fichiers**, leave `/data`, and start analysis to load the backend catalog immediately. GED and downstream processing/results use the checked-in `happy-path` browser mock.
 
 ```bash
 npm run lint

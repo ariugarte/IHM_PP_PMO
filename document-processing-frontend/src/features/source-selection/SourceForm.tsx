@@ -21,7 +21,7 @@ export function SourceForm() {
   const setSourceSelection = useWorkflowStore((state) => state.setSourceSelection);
   const setIntakeTask = useWorkflowStore((state) => state.setIntakeTask);
   const completeIntake = useWorkflowStore((state) => state.completeIntake);
-  const form = useForm<SourceSelection>({ resolver: zodResolver(sourceSelectionSchema), defaultValues: { source: 'filesystem', folderPath: '/data/contracts/2026' } });
+  const form = useForm<SourceSelection>({ resolver: zodResolver(sourceSelectionSchema), defaultValues: { source: 'filesystem', folderPath: '/data' } });
   const source = useWatch({ control: form.control, name: 'source' });
   const gedQuery = useQuery({ queryKey: ['ged-contracts'], queryFn: ({ signal }) => listGedContracts(appConfig, signal), enabled: source === 'GED' });
   const mutation = useMutation({
@@ -30,13 +30,17 @@ export function SourceForm() {
       queryClient.removeQueries({ queryKey: ['task', 'intake', task.taskId] });
       setSourceSelection(selection);
       setIntakeTask(task);
+      if (selection.source === 'filesystem' && task.status === 'succeeded' && task.workflowId) {
+        completeIntake(task.workflowId);
+        navigate('/documents');
+      }
     },
   });
 
   const changeSource = (next: 'filesystem' | 'GED') => {
     form.clearErrors();
     form.reset(next === 'filesystem'
-      ? { source: 'filesystem', folderPath: '/data/contracts/2026' }
+      ? { source: 'filesystem', folderPath: '/data' }
       : { source: 'GED', gedCategory: 'COLLECTIVE', contractNumbers: [] });
   };
 
@@ -53,7 +57,7 @@ export function SourceForm() {
           <FormControlLabel value="GED" control={<Radio />} label={t('ged')} />
         </RadioGroup>
       </FormControl>
-      {source === 'filesystem' ? <Controller name="folderPath" control={form.control} render={({ field, fieldState }) => <TextField {...field} label={t('folderPath')} placeholder="/data/contracts" required error={!!fieldState.error} helperText={fieldState.error?.message ?? t('folderHelp')} />} /> : <>
+      {source === 'filesystem' ? <Controller name="folderPath" control={form.control} render={({ field, fieldState }) => <TextField {...field} label={t('folderPath')} placeholder="/data" required error={!!fieldState.error} helperText={fieldState.error?.message ?? t('folderHelp')} />} /> : <>
         <Controller name="gedCategory" control={form.control} render={({ field, fieldState }) => <TextField {...field} select label={t('category')} required error={!!fieldState.error} helperText={fieldState.error?.message}>
           <MenuItem value="COLLECTIVE">{t('collective')}</MenuItem><MenuItem value="SINISTRES">{t('claims')}</MenuItem>
         </TextField>} />

@@ -1,7 +1,7 @@
-import { delay, http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse, passthrough } from 'msw';
 import type { AppConfig } from '../config/schema';
 import type { ContractDocumentSelection, TaskStatus } from '../domain/models';
-import { contracts, pdfByDocument, resultFor } from './fixtures';
+import { contracts, fixtureDocumentId, pdfByDocument, resultFor } from './fixtures';
 
 type SimulatedTask = { taskId: string; stage: 'intake' | 'processing'; polls: number; contractId?: string; documentIds?: string[]; fail: boolean; successAfter: number };
 
@@ -28,7 +28,8 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       return HttpResponse.json({ items: contracts.map(({ contractNumber, label }) => ({ contractNumber, label })) });
     }),
     http.post('/backend/source/v1/intakes', async ({ request }) => {
-      const body = await request.json() as Record<string, unknown>;
+      const body = await request.clone().json() as Record<string, unknown>;
+      if (body.source === 'filesystem') return passthrough();
       if (!['filesystem', 'GED'].includes(String(body.source))) return HttpResponse.json({ message: 'Source invalide', code: 'INVALID_SOURCE' }, { status: 422 });
       const task: SimulatedTask = { taskId: 'INTAKE-001', stage: 'intake', polls: 0, fail: scenario === 'intake-failure', successAfter: 3 };
       tasks.set(task.taskId, task);
@@ -36,6 +37,7 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       return HttpResponse.json({ taskId: task.taskId, status: 'queued' }, { status: 202, headers: { 'x-correlation-id': 'MOCK-INTAKE-001' } });
     }),
     http.get('/backend/source/v1/tasks/:taskId', async ({ params }) => {
+      if (String(params.taskId).startsWith('FS-')) return passthrough();
       const task = tasks.get(String(params.taskId));
       if (!task) return HttpResponse.json({ message: 'Tâche inconnue' }, { status: 404 });
       task.polls += 1;
@@ -45,13 +47,15 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       return HttpResponse.json({ taskId: task.taskId, status, workflowId: status === 'succeeded' ? 'WF-001' : undefined, progress: status === 'queued' ? 10 : status === 'running' ? 62 : 100, message: status === 'failed' ? 'La source GED a refusé la collecte simulée.' : undefined, errorCode: status === 'failed' ? 'MOCK_INTAKE_FAILURE' : undefined });
     }),
     http.get('/backend/catalog/v1/workflows/:workflowId/contracts', async ({ params }) => {
+      if (String(params.workflowId).startsWith('FS-')) return passthrough();
       if (params.workflowId !== 'WF-001') return HttpResponse.json({ message: 'Workflow inconnu' }, { status: 404 });
       await delay(100);
       return HttpResponse.json({ workflowId: params.workflowId, contracts });
     }),
     http.post('/backend/processing/v1/workflows/:workflowId/processing-jobs', async ({ request, params }) => {
       const body = await request.json() as { selections?: ContractDocumentSelection[] };
-      if (params.workflowId !== 'WF-001' || !body.selections?.length || body.selections.some((selection) => !selection.documentIds.length)) {
+      const workflowId = String(params.workflowId);
+      if ((workflowId !== 'WF-001' && !workflowId.startsWith('FS-')) || !body.selections?.length || body.selections.some((selection) => !selection.documentIds.length)) {
         return HttpResponse.json({ message: 'Sélection invalide', code: 'INVALID_SELECTION' }, { status: 422 });
       }
       processingAttempt += 1;
@@ -87,6 +91,7 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       return HttpResponse.json({ taskId: task.taskId, documents });
     }),
     http.get('/backend/catalog/v1/workflows/:workflowId/documents/:documentId/content', async ({ params }) => {
+      if (String(params.workflowId).startsWith('FS-')) return passthrough();
       const filename = pdfByDocument[String(params.documentId)];
       if (!filename) return HttpResponse.json({ message: 'PDF inconnu' }, { status: 404 });
       const response = await fetch(`/mock-pdfs/${filename}`);
@@ -96,10 +101,11 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
     http.post('/backend/chat/v1/chat', async ({ request }) => {
       const body = await request.json() as { conversationId?: string; message?: string; context?: { documentIds?: string[]; pageNumbers?: number[] } };
       const documentId = body.context?.documentIds?.[0] ?? 'D-001';
+      const fixtureId = fixtureDocumentId(documentId);
       const pageNumber = body.context?.pageNumbers?.[0] ?? 1;
       const lower = body.message?.toLowerCase() ?? '';
       const message = lower.includes('siren')
-        ? documentId === 'D-006' ? 'Le numéro SIREN détecté est 987 654 321.' : 'Le numéro SIREN détecté est 123 456 789.'
+        ? fixtureId === 'D-006' ? 'Le numéro SIREN détecté est 987 654 321.' : 'Le numéro SIREN détecté est 123 456 789.'
         : `Pour le document ${documentId}, la page ${pageNumber} est utilisée comme contexte. Je peux expliquer les champs extraits ou leur confiance.`;
       await delay(220);
       return HttpResponse.json({ conversationId: body.conversationId ?? 'CHAT-001', message, sources: [{ documentId, pageNumber, fieldKey: lower.includes('siren') ? 'siren' : undefined }] });

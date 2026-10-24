@@ -43,6 +43,20 @@ export const pdfByDocument: Record<string, string> = {
   'D-004': 'unknown-notice.pdf', 'D-005': 'mixed-dossier.pdf', 'D-006': 'kbis-gamma.pdf',
 };
 
+export function fixtureDocumentId(documentId: string): string {
+  if (pagesByDocument[documentId]) return documentId;
+  if (!documentId.startsWith('document_')) return documentId;
+  try {
+    const encoded = documentId.slice('document_'.length).replaceAll('-', '+').replaceAll('_', '/');
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+    const bytes = Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+    const filename = new TextDecoder().decode(bytes).split('/').at(-1);
+    return Object.entries(pdfByDocument).find(([, fixtureFilename]) => fixtureFilename === filename)?.[0] ?? documentId;
+  } catch {
+    return documentId;
+  }
+}
+
 export function resultFor(taskId: string, contractId: string, documentId: string): DocumentResult {
-  return { taskId, contractId, documentId, status: 'succeeded', pages: pagesByDocument[documentId] ?? [] };
+  return { taskId, contractId, documentId, status: 'succeeded', pages: pagesByDocument[fixtureDocumentId(documentId)] ?? [] };
 }

@@ -3,8 +3,20 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173 },
-  preview: { port: 4173 },
+  server: {
+    port: 5173,
+    proxy: {
+      '/backend/source': { target: 'http://127.0.0.1:8001', rewrite: (path) => path.replace(/^\/backend\/source/, '') },
+      '/backend/catalog': { target: 'http://127.0.0.1:8001', rewrite: (path) => path.replace(/^\/backend\/catalog/, '') },
+    },
+  },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/backend/source': { target: 'http://127.0.0.1:8001', rewrite: (path) => path.replace(/^\/backend\/source/, '') },
+      '/backend/catalog': { target: 'http://127.0.0.1:8001', rewrite: (path) => path.replace(/^\/backend\/catalog/, '') },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',

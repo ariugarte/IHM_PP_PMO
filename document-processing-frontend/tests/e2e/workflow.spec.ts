@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function startFilesystemIntake(page: Page) {
   await page.goto('/source');
-  await page.getByLabel('Chemin du dossier').fill('/data/contracts/2026');
+  await page.getByLabel('Chemin du dossier').fill('/data');
   await page.getByRole('button', { name: "Démarrer l’analyse" }).click();
+  await expect(page).toHaveURL(/\/documents$/);
 }
 
 async function continueAfterIntake(page: Page) {
@@ -59,7 +60,6 @@ test('GED intake, exact refined selection, PDF preview and progressive page resu
 test('active processing recovers after a full reload', async ({ page }) => {
   await mockScenario(page, 'slow-processing');
   await startFilesystemIntake(page);
-  await continueAfterIntake(page);
   await page.getByRole('checkbox', { name: 'Contrat CTR-2026-001' }).check();
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
@@ -71,7 +71,11 @@ test('active processing recovers after a full reload', async ({ page }) => {
 
 test('intake failure never unlocks documents and can be retried', async ({ page }) => {
   await mockScenario(page, 'intake-failure');
-  await startFilesystemIntake(page);
+  await page.goto('/source');
+  await page.getByRole('radio', { name: 'GED' }).check();
+  await page.getByLabel('Contrats').click();
+  await page.getByRole('option', { name: /CTR-2026-001/ }).click();
+  await page.getByRole('button', { name: "Démarrer l’analyse" }).click();
   await expect(page.getByText('La source GED a refusé la collecte simulée.').first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole('button', { name: 'Continuer' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: "Démarrer l’analyse" })).toBeEnabled();
@@ -80,18 +84,26 @@ test('intake failure never unlocks documents and can be retried', async ({ page 
 test('partial processing failure keeps completed results usable', async ({ page }) => {
   await mockScenario(page, 'partial-failure');
   await startFilesystemIntake(page);
-  await continueAfterIntake(page);
-  await expect(page.getByText('kbis_alpha.pdf')).toBeVisible();
+  await expect(page.getByText('kbis-alpha.pdf')).toBeVisible();
   await page.getByRole('button', { name: 'Tout sélectionner' }).click();
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
   await expect(page.getByRole('button', { name: 'Voir les résultats' })).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Voir les résultats' }).click();
   await expect(page.getByText('Des traitements ont échoué. Les résultats disponibles restent consultables.')).toBeVisible({ timeout: 15_000 });
+  await page.getByText('kbis-alpha.pdf').click();
   await expect(page.getByText('Extrait Kbis')).toBeVisible();
-  await page.getByText('annexe_inconnue.pdf').click();
+  await page.getByText('unknown-notice.pdf').click();
   await expect(page.getByText('Type inconnu (NOTICE_LEGACY)')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('ZX-908', { exact: true })).toBeVisible();
+});
+
+test('filesystem intake lists backend contracts and previews backend PDF bytes', async ({ page }) => {
+  await startFilesystemIntake(page);
+  await expect(page.getByText('CTR-2026-001')).toBeVisible();
+  const row = page.getByRole('row').filter({ hasText: 'kbis-alpha.pdf' });
+  await row.getByRole('button', { name: 'Visualiser' }).click();
+  await expect(page.getByTestId('pdf-viewer').locator('canvas')).toBeVisible({ timeout: 10_000 });
 });
 
 test('invalid runtime configuration blocks startup visibly', async ({ page }) => {

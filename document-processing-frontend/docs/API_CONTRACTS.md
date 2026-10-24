@@ -17,7 +17,7 @@ GET /backend/source/v1/ged/contracts
 ## Intake
 
 ```json
-{ "source": "filesystem", "folderPath": "/data/contracts/2026" }
+{ "source": "filesystem", "folderPath": "/data" }
 ```
 
 or:
@@ -26,10 +26,16 @@ or:
 { "source": "GED", "gedCategory": "COLLECTIVE", "contractNumbers": ["CTR-2026-001"] }
 ```
 
-`POST /backend/source/v1/intakes` returns HTTP 202:
+For GED, `POST /backend/source/v1/intakes` returns HTTP 202 and starts queued work:
 
 ```json
 { "taskId": "INTAKE-001", "status": "queued" }
+```
+
+For the local filesystem backend, the same endpoint validates `/data`, scans the configured data directory, and returns an immediately completed workflow:
+
+```json
+{ "taskId": "FS-INTAKE-DATA", "status": "succeeded", "workflowId": "FS-DATA", "progress": 100 }
 ```
 
 `GET /backend/source/v1/tasks/INTAKE-001`:

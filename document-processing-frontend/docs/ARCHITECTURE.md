@@ -12,7 +12,7 @@ Browser (React)
   └─ /backend/chat/*        ── Caddy ── CHAT_API_ORIGIN
 ```
 
-In mock mode, MSW intercepts those exact browser requests. The React code, endpoint resolver, HTTP client, DTO adapters, TanStack queries, and screens are unchanged.
+In mock mode, MSW intercepts those exact browser requests. GED, processing/results, and chat receive deterministic responses. Filesystem source/catalog requests are passed through to the FastAPI backend, with Vite proxying source and catalog paths during local development. The React endpoint resolver, HTTP client, DTO adapters, TanStack queries, and screens remain shared.
 
 ## Source modules
 
