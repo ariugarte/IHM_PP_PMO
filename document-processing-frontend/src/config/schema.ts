@@ -51,6 +51,38 @@ export type AppConfig = z.infer<typeof appConfigSchema>;
 export type ApiRoute = z.infer<typeof routeSchema>;
 
 const localizedLabelSchema = z.object({ fr: z.string().min(1), en: z.string().min(1) });
+const configurableIdSchema = z.string().regex(/^[A-Za-z][A-Za-z0-9_.-]*$/, 'Identifiant invalide');
+
+const documentSearchTypeGroupSchema = z.object({
+  id: configurableIdSchema,
+  label: localizedLabelSchema,
+  types: z.array(z.object({ id: configurableIdSchema, label: localizedLabelSchema })).min(1),
+});
+
+export const documentSearchTypesSchema = z.object({
+  version: z.literal(1),
+  clientTypes: z.object({
+    PP: z.object({ groups: z.array(documentSearchTypeGroupSchema).min(1) }),
+    PMO: z.object({ groups: z.array(documentSearchTypeGroupSchema).min(1) }),
+  }),
+}).superRefine((config, ctx) => {
+  for (const [clientType, clientConfig] of Object.entries(config.clientTypes)) {
+    const groupIds = new Set<string>();
+    const typeIds = new Set<string>();
+    clientConfig.groups.forEach((group, groupIndex) => {
+      if (groupIds.has(group.id)) ctx.addIssue({ code: 'custom', path: ['clientTypes', clientType, 'groups', groupIndex, 'id'], message: `Groupe dupliqué: ${group.id}` });
+      groupIds.add(group.id);
+      group.types.forEach((type, typeIndex) => {
+        if (typeIds.has(type.id)) ctx.addIssue({ code: 'custom', path: ['clientTypes', clientType, 'groups', groupIndex, 'types', typeIndex, 'id'], message: `Type dupliqué: ${type.id}` });
+        typeIds.add(type.id);
+      });
+    });
+  }
+});
+
+export type DocumentSearchTypesConfig = z.infer<typeof documentSearchTypesSchema>;
+export type DocumentSearchTypeGroup = DocumentSearchTypesConfig['clientTypes']['PP']['groups'][number];
+
 export const documentFieldSchema = z.object({
   key: z.string().regex(/^[A-Za-z][A-Za-z0-9_.-]*$/),
   label: localizedLabelSchema,

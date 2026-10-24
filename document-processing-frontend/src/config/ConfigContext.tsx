@@ -1,8 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- the provider and its typed consumer belong to one context module */
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AppConfig, DocumentTypeRegistry } from './schema';
+import type { AppConfig, DocumentSearchTypesConfig, DocumentTypeRegistry } from './schema';
 
-type RuntimeConfig = { appConfig: AppConfig; documentTypes: DocumentTypeRegistry };
+type RuntimeConfig = { appConfig: AppConfig; documentTypes: DocumentTypeRegistry; documentSearchTypes: DocumentSearchTypesConfig };
 const ConfigContext = createContext<RuntimeConfig | null>(null);
 
 export function ConfigProvider({ value, children }: { value: RuntimeConfig; children: ReactNode }) {

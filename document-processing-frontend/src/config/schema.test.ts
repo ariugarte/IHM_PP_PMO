@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { appConfigSchema, documentTypeRegistrySchema } from './schema';
-import { testConfig, testRegistry } from '../test/fixtures';
+import { appConfigSchema, documentSearchTypesSchema, documentTypeRegistrySchema } from './schema';
+import { testConfig, testRegistry, testSearchTypes } from '../test/fixtures';
 
 describe('runtime configuration schemas', () => {
   it('accepts a complete same-origin configuration', () => {
@@ -17,5 +17,17 @@ describe('runtime configuration schemas', () => {
     expect(documentTypeRegistrySchema.safeParse({ version: 1, types: [testRegistry.types[0], testRegistry.types[0]] }).success).toBe(false);
     const duplicatedFields = { ...testRegistry.types[0], fields: [testRegistry.types[0]!.fields[0], testRegistry.types[0]!.fields[0]] };
     expect(documentTypeRegistrySchema.safeParse({ version: 1, types: [duplicatedFields] }).success).toBe(false);
+  });
+
+  it('validates client-specific search types and rejects duplicate configurable IDs', () => {
+    expect(documentSearchTypesSchema.parse(testSearchTypes)).toEqual(testSearchTypes);
+    const duplicate = testSearchTypes.clientTypes.PP.groups[0]!.types[0]!;
+    expect(documentSearchTypesSchema.safeParse({
+      ...testSearchTypes,
+      clientTypes: {
+        ...testSearchTypes.clientTypes,
+        PP: { groups: [{ ...testSearchTypes.clientTypes.PP.groups[0]!, types: [duplicate, duplicate] }] },
+      },
+    }).success).toBe(false);
   });
 });

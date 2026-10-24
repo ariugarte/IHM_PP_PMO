@@ -29,7 +29,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser suite builds and previews the production bundle, then covers PMO and PP intake payloads, the scalable contract selector, exact refined document payloads, a valid PDF, first-success result entry, mixed page classifications, reload recovery, and partial processing failure. Backend tests independently verify both client-type directory mappings.
+The browser suite builds and previews the production bundle, then covers PMO and PP intake payloads, client-dependent document-search types, collapsed per-contract panels, exact refined document/type payloads, a valid PDF, first-success result entry, mixed page classifications, reload recovery, and partial processing failure. Backend tests independently verify both client-type directory mappings.
 
 ## Work on one mock scenario
 

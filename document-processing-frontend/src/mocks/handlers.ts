@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, passthrough } from 'msw';
 import type { AppConfig } from '../config/schema';
-import type { ContractDocumentSelection, TaskStatus } from '../domain/models';
+import type { ContractAnalysisSelection, TaskStatus } from '../domain/models';
 import { contracts, fixtureDocumentId, pdfByDocument, resultFor } from './fixtures';
 
 type SimulatedTask = { taskId: string; stage: 'intake' | 'processing'; polls: number; contractId?: string; documentIds?: string[]; fail: boolean; successAfter: number };
@@ -45,9 +45,9 @@ export function createHandlers(scenario: AppConfig['mock']['scenario']) {
       return HttpResponse.json({ workflowId: params.workflowId, contracts });
     }),
     http.post('/backend/processing/v1/workflows/:workflowId/processing-jobs', async ({ request, params }) => {
-      const body = await request.json() as { selections?: ContractDocumentSelection[] };
+      const body = await request.json() as { selections?: ContractAnalysisSelection[] };
       const workflowId = String(params.workflowId);
-      if ((workflowId !== 'WF-001' && !workflowId.startsWith('FS-')) || !body.selections?.length || body.selections.some((selection) => !selection.documentIds.length)) {
+      if ((workflowId !== 'WF-001' && !workflowId.startsWith('FS-')) || !body.selections?.length || body.selections.some((selection) => !selection.documentIds.length || !selection.documentTypeIds.length)) {
         return HttpResponse.json({ message: 'Sélection invalide', code: 'INVALID_SELECTION' }, { status: 422 });
       }
       processingAttempt += 1;

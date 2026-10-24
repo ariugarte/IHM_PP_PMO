@@ -7,7 +7,7 @@ Production-oriented React/TypeScript frontend for a three-step contract document
 - AXA France blue/red/white branding with reusable header, footer, and favicon logo assets.
 - Legal entity (`PMO`) or natural person (`PP`) selection without a browser-visible filesystem path.
 - Backend-controlled `PMO`/`PP` directory mapping; the document step stays locked until a successful response supplies a workflow ID.
-- Searchable contract multi-selection, per-contract document refinement, five-row scrollable document cards, real PDF preview, and exact processing payloads.
+- Searchable contract multi-selection, per-contract runtime-configured search-type checklists, document refinement, five-row scrollable document cards, real PDF preview, and exact processing payloads.
 - Page-specific PDF, classifier, OCR fields, raw OCR, unknown types/fields, missing values, optional confidence, and mixed-classification PDFs.
 - Contextual assistant-ui `LocalRuntime` chat backed by the configured REST endpoint and current workflow/contract/document/page context.
 - Same-tab reload recovery with only workflow IDs, selections, and task references in `sessionStorage`. OCR, PII, PDF bytes, tokens, and chat content are not stored there.
@@ -79,8 +79,9 @@ curl -fsS http://localhost:8080/ | grep '<div id="root"></div>'
 - Production Compose mounts `deploy/config/app-config.real.json` at `/srv/config/app-config.json` with `mock.enabled=false`.
 - Private upstream origins live only in Caddy environment variables: `SOURCE_API_ORIGIN`, `CATALOG_API_ORIGIN`, `PROCESSING_API_ORIGIN`, `CHAT_API_ORIGIN`.
 - Document type and field definitions live in `public/config/document-types.json`.
+- PP/PMO document types to search for live in `public/config/document-search-types.json`; each group and type has an editable stable ID plus French and English labels.
 
-Both JSON documents are validated with Zod before React renders. Invalid configuration shows a blocking error screen; it never silently turns mock mode on.
+All three JSON documents are validated with Zod before React renders. Invalid configuration shows a blocking error screen; it never silently turns mock mode on.
 
 ### Add a document type without changing React
 
@@ -129,6 +130,7 @@ Add fixtures in `src/mocks/fixtures.ts` and state transitions/routes in `src/moc
 
 - The browser sends only `clientType`; it never sends or displays a filesystem path. The backend owns both client-type-to-directory mappings.
 - Contract selection is independent from document selection. Removing a contract from the selector removes all of its documents from the processing payload.
+- Search-type choices are client-specific and independent per contract. At least one type is required for every contract sent to processing.
 - A contract card shows at most five document rows before its grid scrolls.
 - Task-creating POST requests are never retried automatically. Idempotent GETs use bounded retry/backoff; polling stops at terminal states or a configured local timeout. A timeout means remote state is unknown, not failed.
 - One PDF can contain pages with different classifications. Fields shown on the right always belong to the selected one-based page.

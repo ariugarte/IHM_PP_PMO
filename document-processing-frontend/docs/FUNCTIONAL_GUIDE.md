@@ -15,9 +15,11 @@ The browser submits only `{clientType}`. The backend maps `PMO` and `PP` to its 
 
 ## Step 2 — Documents
 
-The catalog service returns contracts and PDF documents for the workflow. A searchable multi-select determines which contracts are added to the analysis; newly added contracts initially include all their PDFs. Each contract can then select all children, or refine individual documents with the normal checked/indeterminate/unchecked parent state. Search changes only the display and never discards selections. Each contract card shows up to five document rows before its grid becomes vertically scrollable.
+The catalog service returns contracts and PDF documents for the workflow. A searchable multi-select determines which contracts are added to the analysis; newly added contracts initially include all their PDFs and all search types configured for the selected client profile. Each contract has a **Types de documents à rechercher** panel above its file list. The panel is collapsed by default and its checkboxes are independent for every contract. At least one type must remain selected for each contract that sends files to processing.
 
-**Visualiser** loads actual PDF bytes through the same-origin catalog route. Previewing has no effect on selection. **Lancer le traitement** shows a confirmation and sends only non-empty `{contractId, documentIds[]}` groups.
+Each contract can select all file children, or refine individual documents with the normal checked/indeterminate/unchecked parent state. Search changes only the display and never discards selections. Each contract card shows up to five document rows before its grid becomes vertically scrollable.
+
+**Visualiser** loads actual PDF bytes through the same-origin catalog route. Previewing has no effect on selection. **Lancer le traitement** shows a confirmation and sends only non-empty `{contractId, documentIds[], documentTypeIds[]}` groups.
 
 The returned list may contain one or many tasks per contract/document mapping. Each task is monitored independently. **Voir les résultats** appears after the first success; other tasks keep progressing. Total failure leaves the user on this step with a clear retry path; partial failure preserves completed work.
 
@@ -39,6 +41,6 @@ The contextual chat receives the workflow, selected contract, selected document,
 
 ## Reload and reset
 
-During same-tab reload, `sessionStorage` restores workflow IDs, selected contract/document IDs, navigation, and task references. The app re-queries the catalog and task states. Sensitive extracted data, PDFs, chat messages, auth data, and tokens are not stored in Web Storage.
+During same-tab reload, `sessionStorage` restores the client type, workflow IDs, selected contract/document/search-type IDs, navigation, and task references. The app re-queries the catalog and task states. Sensitive extracted data, PDFs, chat messages, auth data, and tokens are not stored in Web Storage.
 
 **Recommencer** confirms, clears the local workflow and TanStack Query cache, and stops monitoring the old references. It does not cancel a remote task.

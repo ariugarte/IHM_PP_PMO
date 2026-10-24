@@ -45,6 +45,11 @@ export const contractDocumentSelectionSchema = z.object({
 });
 export type ContractDocumentSelection = z.infer<typeof contractDocumentSelectionSchema>;
 
+export const contractAnalysisSelectionSchema = contractDocumentSelectionSchema.extend({
+  documentTypeIds: z.array(z.string().min(1)).min(1),
+});
+export type ContractAnalysisSelection = z.infer<typeof contractAnalysisSelectionSchema>;
+
 export const extractedFieldSchema = z.object({
   key: z.string().min(1),
   value: z.union([z.string(), z.number(), z.boolean(), z.null()]),

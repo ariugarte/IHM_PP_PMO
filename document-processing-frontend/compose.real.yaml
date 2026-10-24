@@ -2,6 +2,8 @@ services:
   frontend:
     volumes:
       - ./deploy/config/app-config.real.json:/srv/config/app-config.json:ro
+      - ./public/config/document-types.json:/srv/config/document-types.json:ro
+      - ./public/config/document-search-types.json:/srv/config/document-search-types.json:ro
     environment:
       SOURCE_API_ORIGIN: ${SOURCE_API_ORIGIN:-http://host.docker.internal:8001}
       CATALOG_API_ORIGIN: ${CATALOG_API_ORIGIN:-http://host.docker.internal:8002}

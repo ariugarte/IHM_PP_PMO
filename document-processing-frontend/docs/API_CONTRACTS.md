@@ -68,9 +68,16 @@ return HTTP 422 through request validation.
 ```json
 {
   "workflowId": "FS-PMO",
-  "selections": [{ "contractId": "C-001", "documentIds": ["D-001", "D-002"] }]
+  "selections": [{
+    "contractId": "C-001",
+    "documentIds": ["D-001", "D-002"],
+    "documentTypeIds": ["LEGAL_ENTITY_OFFICIAL_DOCUMENT", "BENEFICIAL_OWNERS_REGISTER"]
+  }]
 }
 ```
+
+`documentTypeIds` is required and contains the per-contract choices from
+`document-search-types.json`. Labels are presentation data and are not sent to the processing API.
 
 HTTP 202:
 

@@ -11,27 +11,40 @@ import { ErrorPanel } from '../../components/feedback/ErrorPanel';
 import { DocumentPreviewDialog } from '../../components/pdf/DocumentPreviewDialog';
 import { useRuntimeConfig } from '../../config/ConfigContext';
 import { selectionCounts, toggleContractSelection } from '../../domain/selections';
-import type { Contract, DocumentInfo } from '../../domain/models';
+import type { Contract, ContractAnalysisSelection, DocumentInfo } from '../../domain/models';
 import { useWorkflowStore } from '../../state/workflowStore';
 import { ContractDocumentTable } from './ContractDocumentTable';
+import { ContractDocumentTypePanel } from './ContractDocumentTypePanel';
 import { ProcessingOverview } from './ProcessingOverview';
 
 export function DocumentsPage() {
   const { t } = useTranslation();
-  const { appConfig } = useRuntimeConfig();
+  const { appConfig, documentSearchTypes } = useRuntimeConfig();
   const workflowId = useWorkflowStore((state) => state.workflowId)!;
+  const sourceSelection = useWorkflowStore((state) => state.sourceSelection);
   const selections = useWorkflowStore((state) => state.selections);
   const setSelections = useWorkflowStore((state) => state.setSelections);
   const selectedContractIds = useWorkflowStore((state) => state.selectedContractIds);
   const setSelectedContractIds = useWorkflowStore((state) => state.setSelectedContractIds);
+  const documentTypeSelections = useWorkflowStore((state) => state.documentTypeSelections);
+  const setDocumentTypeSelections = useWorkflowStore((state) => state.setDocumentTypeSelections);
   const tasks = useWorkflowStore((state) => state.processingTasks);
   const setProcessingTasks = useWorkflowStore((state) => state.setProcessingTasks);
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState<DocumentInfo>();
   const [confirming, setConfirming] = useState(false);
+  const clientType = sourceSelection?.clientType ?? (workflowId === 'FS-PP' ? 'PP' : 'PMO');
+  const searchTypeGroups = documentSearchTypes.clientTypes[clientType].groups;
+  const allDocumentTypeIds = useMemo(() => searchTypeGroups.flatMap((group) => group.types.map((type) => type.id)), [searchTypeGroups]);
+  const availableDocumentTypeIds = useMemo(() => new Set(allDocumentTypeIds), [allDocumentTypeIds]);
+  const analysisSelections = useMemo<ContractAnalysisSelection[]>(() => selections.map((selection) => ({
+    ...selection,
+    documentTypeIds: (documentTypeSelections[selection.contractId] ?? []).filter((typeId) => availableDocumentTypeIds.has(typeId)),
+  })), [availableDocumentTypeIds, documentTypeSelections, selections]);
+  const missingDocumentTypes = analysisSelections.some((selection) => selection.documentTypeIds.length === 0);
   const catalog = useQuery({ queryKey: ['contracts', workflowId], queryFn: ({ signal }) => listContracts(appConfig, workflowId, signal) });
   const mutation = useMutation({
-    mutationFn: () => startProcessing(appConfig, workflowId, selections),
+    mutationFn: () => startProcessing(appConfig, workflowId, analysisSelections),
     onSuccess: (created) => { setProcessingTasks(created); setConfirming(false); },
   });
   const selectedContracts = useMemo(() => (catalog.data ?? []).filter((contract) => selectedContractIds.includes(contract.contractId)), [catalog.data, selectedContractIds]);
@@ -46,7 +59,12 @@ export function DocumentsPage() {
   const updateSelectedContracts = (contracts: Contract[]) => {
     const currentIds = new Set(selectedContractIds);
     const selectionByContract = new Map(selections.map((selection) => [selection.contractId, selection]));
+    const nextDocumentTypeSelections = Object.fromEntries(contracts.map((contract) => [
+      contract.contractId,
+      documentTypeSelections[contract.contractId] ?? allDocumentTypeIds,
+    ]));
     setSelectedContractIds(contracts.map((contract) => contract.contractId));
+    setDocumentTypeSelections(nextDocumentTypeSelections);
     setSelections(contracts.flatMap((contract) => {
       const existing = selectionByContract.get(contract.contractId);
       if (existing) return [existing];
@@ -92,13 +110,17 @@ export function DocumentsPage() {
           <Checkbox checked={all} indeterminate={indeterminate} onClick={(event) => event.stopPropagation()} onChange={(_, checked) => setSelections(toggleContractSelection(selections, contract, checked))} slotProps={{ input: { 'aria-label': `${t('contract')} ${contract.contractNumber}` } }} />
           <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 700 }}>{contract.contractNumber} {contract.label && `— ${contract.label}`}</Typography><Typography variant="body2" color="text.secondary">{selectedCount} / {contract.documents.length} {t('stepDocuments').toLowerCase()}</Typography></Box>
         </AccordionSummary>
-        <AccordionDetails sx={{ p: 0 }}><ContractDocumentTable contract={contract} selectedIds={selected?.documentIds ?? []} onSelectionChange={(ids) => setContractDocumentIds(contract.contractId, ids)} onPreview={(documentId) => setPreview(contract.documents.find((document) => document.documentId === documentId))} /></AccordionDetails>
+        <AccordionDetails sx={{ p: 0 }}>
+          <ContractDocumentTypePanel contractId={contract.contractId} groups={searchTypeGroups} selectedIds={(documentTypeSelections[contract.contractId] ?? []).filter((typeId) => availableDocumentTypeIds.has(typeId))} onChange={(ids) => setDocumentTypeSelections({ ...documentTypeSelections, [contract.contractId]: ids })} />
+          <ContractDocumentTable contract={contract} selectedIds={selected?.documentIds ?? []} onSelectionChange={(ids) => setContractDocumentIds(contract.contractId, ids)} onPreview={(documentId) => setPreview(contract.documents.find((document) => document.documentId === documentId))} />
+        </AccordionDetails>
       </Accordion>;
     })}</Stack>
+    {missingDocumentTypes && <Alert severity="warning">{t('documentTypesRequired')}</Alert>}
     <Card variant="outlined" sx={{ position: 'sticky', bottom: 16, zIndex: 2, p: 2, bgcolor: 'rgba(255,255,255,.96)', backdropFilter: 'blur(8px)' }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, gap: 2 }}>
         <Typography sx={{ fontWeight: 700 }}>{t('selectedSummary', counts)}</Typography>
-        <Button variant="contained" size="large" disabled={!counts.documents || mutation.isPending || tasks.some((task) => task.status === 'queued' || task.status === 'running')} onClick={() => setConfirming(true)}>{mutation.isPending ? <CircularProgress size={22} color="inherit" /> : t('launchProcessing')}</Button>
+        <Button variant="contained" size="large" disabled={!counts.documents || missingDocumentTypes || mutation.isPending || tasks.some((task) => task.status === 'queued' || task.status === 'running')} onClick={() => setConfirming(true)}>{mutation.isPending ? <CircularProgress size={22} color="inherit" /> : t('launchProcessing')}</Button>
       </Stack>
     </Card>
     {mutation.isError && <Alert severity="error">{mutation.error instanceof Error ? mutation.error.message : t('networkError')}</Alert>}

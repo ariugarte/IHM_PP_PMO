@@ -1,4 +1,4 @@
-import type { AppConfig, DocumentTypeRegistry } from '../config/schema';
+import type { AppConfig, DocumentSearchTypesConfig, DocumentTypeRegistry } from '../config/schema';
 
 export const testConfig: AppConfig = {
   version: 1,
@@ -24,4 +24,12 @@ export const testRegistry: DocumentTypeRegistry = {
     { key: 'siren', label: { fr: 'Numéro SIREN', en: 'SIREN number' }, dataType: 'text', order: 10 },
     { key: 'companyName', label: { fr: 'Raison sociale', en: 'Company name' }, dataType: 'text', order: 20 },
   ] }],
+};
+
+export const testSearchTypes: DocumentSearchTypesConfig = {
+  version: 1,
+  clientTypes: {
+    PP: { groups: [{ id: 'JDI', label: { fr: 'Justificatifs d’identité', en: 'Identity documents' }, types: [{ id: 'CNI', label: { fr: 'Carte nationale d’identité', en: 'National identity card' } }] }] },
+    PMO: { groups: [{ id: 'ALL_PMO', label: { fr: 'Justificatifs PMO', en: 'Legal-entity documents' }, types: [{ id: 'KBIS', label: { fr: 'Extrait Kbis', en: 'Kbis extract' } }] }] },
+  },
 };

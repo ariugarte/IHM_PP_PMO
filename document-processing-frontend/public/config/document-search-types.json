@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "clientTypes": {
+    "PP": {
+      "groups": [
+        {
+          "id": "JDI",
+          "label": { "fr": "Justificatifs d’identité (JDI)", "en": "Identity documents (JDI)" },
+          "types": [
+            { "id": "CNI", "label": { "fr": "Carte nationale d’identité (CNI)", "en": "National identity card (CNI)" } },
+            { "id": "PASSPORT", "label": { "fr": "Passeport", "en": "Passport" } },
+            { "id": "DRIVING_LICENCE", "label": { "fr": "Permis de conduire (ancien et nouveau format)", "en": "Driving licence (old and new formats)" } },
+            { "id": "RESIDENCE_PERMIT", "label": { "fr": "Titre de séjour", "en": "Residence permit" } }
+          ]
+        },
+        {
+          "id": "JDD",
+          "label": { "fr": "Justificatifs de domicile (JDD)", "en": "Proof of address (JDD)" },
+          "types": [
+            { "id": "GAS_BILL", "label": { "fr": "Facture de gaz", "en": "Gas bill" } },
+            { "id": "PHONE_BILL", "label": { "fr": "Facture de téléphone", "en": "Telephone bill" } },
+            { "id": "WATER_BILL", "label": { "fr": "Facture d’eau", "en": "Water bill" } },
+            { "id": "RENT_RECEIPT", "label": { "fr": "Quittance de loyer", "en": "Rent receipt" } },
+            { "id": "TAX_NOTICE", "label": { "fr": "Avis d’imposition", "en": "Tax notice" } },
+            { "id": "NON_TAXATION_CERTIFICATE", "label": { "fr": "Certificat de non-imposition", "en": "Certificate of non-taxation" } },
+            { "id": "PROPERTY_TAX_NOTICE", "label": { "fr": "Taxe foncière", "en": "Property tax notice" } },
+            { "id": "HOME_INSURANCE_CERTIFICATE", "label": { "fr": "Attestation d’assurance habitation", "en": "Home insurance certificate" } },
+            { "id": "HOSTING_CERTIFICATE", "label": { "fr": "Attestation d’hébergement", "en": "Proof of accommodation" } }
+          ]
+        }
+      ]
+    },
+    "PMO": {
+      "groups": [
+        {
+          "id": "ALL_PMO",
+          "label": { "fr": "Justificatifs à collecter pour tous les clients PMO", "en": "Documents required for all legal-entity clients" },
+          "types": [
+            { "id": "LEGAL_ENTITY_OFFICIAL_DOCUMENT", "label": { "fr": "Document officiel attestant de la dénomination sociale, de la forme juridique et de l’adresse du siège social (exemple : extrait Kbis)", "en": "Official document confirming the registered name, legal form and registered office address (for example, a Kbis extract)" } },
+            { "id": "BENEFICIAL_OWNERS_REGISTER", "label": { "fr": "Registre des bénéficiaires effectifs (RBE)", "en": "Beneficial ownership register (RBE)" } }
+          ]
+        },
+        {
+          "id": "HIGH_RISK_PMO",
+          "label": { "fr": "Justificatifs complémentaires pour les clients à risque fort", "en": "Additional documents for high-risk clients" },
+          "types": [
+            { "id": "COMPANY_ARTICLES", "label": { "fr": "Statuts de la société", "en": "Articles of association" } },
+            { "id": "LEGAL_REPRESENTATIVE_AUTHORITY", "label": { "fr": "Document attestant des pouvoirs des représentants légaux", "en": "Document evidencing the powers of legal representatives" } }
+          ]
+        }
+      ]
+    }
+  }
+}

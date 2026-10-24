@@ -1,4 +1,4 @@
-import { appConfigSchema, documentTypeRegistrySchema, type AppConfig, type DocumentTypeRegistry } from './schema';
+import { appConfigSchema, documentSearchTypesSchema, documentTypeRegistrySchema, type AppConfig, type DocumentSearchTypesConfig, type DocumentTypeRegistry } from './schema';
 
 export class ConfigurationError extends Error {
   constructor(public readonly resource: string, public readonly details: string) {
@@ -21,10 +21,11 @@ async function loadJson<T>(url: string, parse: (value: unknown) => { success: bo
   return result.data;
 }
 
-export async function loadRuntimeConfiguration(): Promise<{ appConfig: AppConfig; documentTypes: DocumentTypeRegistry }> {
-  const [appConfig, documentTypes] = await Promise.all([
+export async function loadRuntimeConfiguration(): Promise<{ appConfig: AppConfig; documentTypes: DocumentTypeRegistry; documentSearchTypes: DocumentSearchTypesConfig }> {
+  const [appConfig, documentTypes, documentSearchTypes] = await Promise.all([
     loadJson('/config/app-config.json', (value) => appConfigSchema.safeParse(value)),
     loadJson('/config/document-types.json', (value) => documentTypeRegistrySchema.safeParse(value)),
+    loadJson('/config/document-search-types.json', (value) => documentSearchTypesSchema.safeParse(value)),
   ]);
-  return { appConfig, documentTypes };
+  return { appConfig, documentTypes, documentSearchTypes };
 }

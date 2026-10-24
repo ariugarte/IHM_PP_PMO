@@ -25,6 +25,10 @@ async function mockScenario(page: Page, scenario: 'partial-failure' | 'slow-proc
 test('PMO intake, contract selector, refined documents, PDF preview and progressive results', async ({ page }) => {
   await startClientIntake(page);
   await addContract(page, 'CTR-2026-001');
+  const documentTypesPanel = page.getByRole('button', { name: /Types de documents à rechercher/ });
+  await expect(page.getByRole('checkbox', { name: /Registre des bénéficiaires effectifs/ })).not.toBeVisible();
+  await documentTypesPanel.click();
+  await page.getByRole('checkbox', { name: /Registre des bénéficiaires effectifs/ }).uncheck();
   const identityRow = page.getByRole('row').filter({ hasText: 'identity-alice.pdf' });
   await identityRow.getByRole('checkbox').uncheck();
 
@@ -36,10 +40,11 @@ test('PMO intake, contract selector, refined documents, PDF preview and progress
   await page.getByRole('button', { name: 'Lancer le traitement' }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
   const request = await requestPromise;
-  const payload = request.postDataJSON() as { workflowId: string; selections: Array<{ contractId: string; documentIds: string[] }> };
+  const payload = request.postDataJSON() as { workflowId: string; selections: Array<{ contractId: string; documentIds: string[]; documentTypeIds: string[] }> };
   expect(payload.workflowId).toBe('FS-PMO');
   expect(payload.selections).toHaveLength(1);
   expect(payload.selections[0]?.documentIds).toHaveLength(1);
+  expect(payload.selections[0]?.documentTypeIds).toEqual(['LEGAL_ENTITY_OFFICIAL_DOCUMENT', 'COMPANY_ARTICLES', 'LEGAL_REPRESENTATIVE_AUTHORITY']);
 
   await expect(page.getByRole('button', { name: 'Voir les résultats' })).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Voir les résultats' }).click();
@@ -73,6 +78,10 @@ test('PP intake sends only the client type and lets the backend choose the folde
   expect((await requestPromise).postDataJSON()).toEqual({ clientType: 'PP' });
   await expect(page).toHaveURL(/\/documents$/);
   await expect(page.getByText('Contrats à ajouter à l’analyse')).toBeVisible();
+  await addContract(page, 'CTR-2026-001');
+  await page.getByRole('button', { name: /Types de documents à rechercher/ }).click();
+  await expect(page.getByRole('checkbox', { name: /Carte nationale d’identité/ })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /Registre des bénéficiaires effectifs/ })).toHaveCount(0);
 });
 
 test('partial processing failure keeps completed results usable', async ({ page }) => {

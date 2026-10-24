@@ -4,7 +4,7 @@
 
 `app-config.json` is fetched before React renders and is visible to any browser user. It contains logical same-origin paths only. Caddy's four `*_API_ORIGIN` environment variables are server-side routing data and never enter the JavaScript bundle.
 
-Do not place secrets, credentials, API keys, tokens, private DNS names, or real user data in either browser JSON file.
+Do not place secrets, credentials, API keys, tokens, private DNS names, or real user data in any browser JSON file.
 
 ## `app-config.json`
 
@@ -30,20 +30,44 @@ The registry requires unique uppercase type codes, unique field keys within a ty
 
 Known fields render in registry order. Backend fields not found in the registry render under **Autres champs**. Backend type codes not found in the registry receive an explicit unknown label. Empty configured fields remain visible as **Non renseigné**.
 
+## `document-search-types.json`
+
+This registry controls the checkboxes shown above every contract's file list. `clientTypes.PP` and
+`clientTypes.PMO` each contain one or more groups. Every group and document type has a stable `id`
+and a `label` with both `fr` and `en` values.
+
+To add or rename a choice, edit only this file and reload the page. For example:
+
+```json
+{
+  "id": "PASSPORT",
+  "label": { "fr": "Passeport", "en": "Passport" }
+}
+```
+
+IDs must start with a letter, may contain letters, digits, `_`, `-`, or `.`, and must be unique within
+their client type. The selected IDs are sent to the processing API as `documentTypeIds`; changing an
+ID is therefore an API-contract change. Labels may be changed freely. This registry describes which
+documents to search for; `document-types.json` separately describes how completed classification/OCR
+results are displayed.
+
 ## Mount examples
 
-Compose real mode already mounts:
+Compose real mode already mounts all three runtime files:
 
 ```yaml
 volumes:
   - ./deploy/config/app-config.real.json:/srv/config/app-config.json:ro
+  - ./public/config/document-types.json:/srv/config/document-types.json:ro
+  - ./public/config/document-search-types.json:/srv/config/document-search-types.json:ro
 ```
 
-Mount a custom registry similarly:
+Mount custom registries similarly in another deployment:
 
 ```yaml
 volumes:
   - ./my-document-types.json:/srv/config/document-types.json:ro
+  - ./my-document-search-types.json:/srv/config/document-search-types.json:ro
 ```
 
 Caddy returns config files with `no-store`; a browser reload reads the new content. Invalid JSON or schema values produce a blocking configuration screen.

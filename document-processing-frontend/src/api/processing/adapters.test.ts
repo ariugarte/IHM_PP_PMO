@@ -4,7 +4,7 @@ import { testConfig } from '../../test/fixtures';
 
 describe('processing adapters', () => {
   it('builds the exact contract-to-document payload without empty contracts', () => {
-    expect(toProcessingRequest('WF-1', [{ contractId: 'C-1', documentIds: ['D-2'] }])).toEqual({ workflowId: 'WF-1', selections: [{ contractId: 'C-1', documentIds: ['D-2'] }] });
+    expect(toProcessingRequest('WF-1', [{ contractId: 'C-1', documentIds: ['D-2'], documentTypeIds: ['CNI', 'PASSPORT'] }])).toEqual({ workflowId: 'WF-1', selections: [{ contractId: 'C-1', documentIds: ['D-2'], documentTypeIds: ['CNI', 'PASSPORT'] }] });
   });
 
   it('preserves multiple task/document associations', () => {

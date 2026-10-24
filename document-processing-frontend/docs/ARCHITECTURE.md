@@ -29,7 +29,7 @@ The intake boundary accepts only `clientType`. The FastAPI service owns two conf
 
 ## State ownership
 
-TanStack Query owns catalogs, current task responses, PDFs, and completed results. Zustand owns workflow identity, included contract IDs, selected document IDs, task references, and navigation. The persistence middleware writes only non-sensitive recovery data to `sessionStorage`.
+TanStack Query owns catalogs, current task responses, PDFs, and completed results. Zustand owns client/workflow identity, included contract IDs, selected document IDs, per-contract search-type IDs, task references, and navigation. The persistence middleware writes only non-sensitive recovery data to `sessionStorage`.
 
 The task monitor sits above the routes. It keeps active task polling alive across navigation, stops terminal tasks, bounds concurrently enabled task queries, prevents overlapping polling through TanStack Query, handles bounded transport retries, and invalidates task queries when the tab regains focus.
 
@@ -44,6 +44,7 @@ Path placeholders are individually encoded and every supplied parameter must be 
 - Intake may advance only after success plus `workflowId`.
 - `PMO` and `PP` intake requests never contain a path; repository resolution is a backend concern.
 - The contract multi-selector controls card inclusion independently from each card's document checkboxes.
+- The runtime search-type registry is filtered by client type and copied into independent per-contract selections; processing receives stable IDs, not localized labels.
 - Processing creation returns a list; the app never assumes one task per contract.
 - Results are requested only for succeeded tasks and deduplicated by stable document ID.
 - Failed task data never hides successful task data.
